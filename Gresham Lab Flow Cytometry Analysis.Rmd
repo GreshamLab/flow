@@ -32,9 +32,9 @@ output:
 
 ###This script generates a summary of results followed by quality control plots
 
-###Step 1: Load relevant libraries 
 
-```{r, eval=FALSE}
+##Step 1: Load relevant libraries 
+```{r, eval=TRUE}
 # This is a function that just makes sure you have a package, or installs it for you without prompting
 
 requireInstall <- function(packageName,isBioconductor=F) {
@@ -61,6 +61,7 @@ requireInstall("ggplot2")
 #requireInstall("flowWorkspace")
 #requireInstall("ggcyto", isBioconductor=T)
 #requireInstall("gridExtra")
+
 
 ```
 
@@ -106,6 +107,27 @@ fsApply(flowData.1, each_col, median)
 #fsApply(flowData.2, each_col, median)
 ```
 
+
+###Step 3: apply filters to data
+```{r}
+#Subset the filtered data
+flowData.1.1 <- Subset(flowData.1, pg.singlets) #this filters doublets
+fsApply(flowData.1.1, each_col, length)[1:6]
+filterData.1.1.1 <- Subset(flowData.1.1, pg.nondebris) #this removes debris
+fsApply(filterData.1.1.1, each_col, length)[1:6]
+
+gfp.neg <- Subset(filterData.1.1.1, pg.nongfp)
+fsApply(gfp.neg, each_col, length)[1:6]
+
+gfp.pos <- Subset(filterData.1.1.1, pg.gfp)
+fsApply(gfp.pos, each_col, length)[1:6]
+
+gfp.hi <- Subset(filterData.1.1.1, pg.hi.gfp)
+fsApply(gfp.hi , each_col, length)[1:6]
+
+```
+
+
 ###Step 4: Transform data and create gates to filter out debris
 
 Apply logicle tranformation of data
@@ -119,9 +141,6 @@ dataLGCLTransform.1 <- transform(flowData.1,'FSC.A' = lgcl(`FSC.A`), 'SSC.A' =lg
 #Dataset 2 tranformation applied to every channel
 dataLGCLTransform.2 <- transform(flowData.2,'FSC.A' = lgcl(`FSC.A`), 'SSC.A' =lgcl(`SSC.A`), 'FL1.A' = lgcl(`FL1.A`), 'FL2.A' = lgcl(`FL2.A`), 'FL3.A' = lgcl(`FL3.A`), 'FL4.A' = lgcl(`FL4.A`),'FSC.H' = lgcl(`FSC.H`),'SSC.H' = lgcl(`SSC.H`),'FL1.H' = lgcl(`FL1.H`),'FL2.H' = lgcl(`FL2.H`),'FL3.H' = lgcl(`FL3.H`),'FL4.H' = lgcl(`FL4.H`)) 
 
-
-##Apply a rectangle gate based on FSC and SSC to remove values that we have determined are typically debris for haploid cells.  This should be adjusted if the cell type is different
-rectGate <- rectangleGate("FSC.A"= c(5.8,7),"SSC.A" = c(4.8,6.7))
 
 xyplot(FSC.A ~ SSC.A, data=dataLGCLTransform.1, ylim=c(3,8),xlim=c(3,8), displayFilter=TRUE, filter=rectGate, smooth=F, xbin=128, stat=T, pos=0.5, abs=T)
 
@@ -145,10 +164,6 @@ xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[8]], smooth=F,  stat=T, pos=0.5, 
 xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[9]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
 xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[10]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
 
-xyplot(FSC.A~FSC.H, data=filterData, xlim=c(5,7.5),ylim=c(5,7.5),
-       smooth=F, filter=pg, outline=T, displayFilter=TRUE,
-       stat=T, pos=0.5, abs=T)
-singletsData <- Subset(filterData, pg) 
 
 
 
@@ -336,6 +351,23 @@ print("----------------------")
 par(mfrow=c(1,1)) #change number of plots per row back to standard
 ```
 
+###QC plot for effect of time of sampling
+```{r}
+#To look at the effect of time on signal (of which there shouldn't be any)
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[1]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[2]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[3]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[4]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[5]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[6]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[7]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[8]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[9]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[10]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+```
+
+
+
 
 ###Step 6: Generate boxplot comparing expression values between samples and print table
 
@@ -445,6 +477,14 @@ par(mar=c(5.1,4.1,4.1,2.1)) #reset margins to default
 # dev.off()
 
 ```
+
+
+
+
+
+
+
+
 
 
 

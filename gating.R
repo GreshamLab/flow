@@ -14,9 +14,10 @@
 #Individual gates are saved in a file gates.Rdata for use with the Gresham Lab Flow Cytometry Analysis.Rmd pipeline
 ###########################################################################################################################
 
-source("http://bioconductor.org/biocLite.R")
-biocLite("flowViz")
-biocLite("flowCore")
+##To be run the first time if packages are not installed.
+#source("http://bioconductor.org/biocLite.R")
+#biocLite("flowViz")
+#biocLite("flowCore")
 
 #Load libraries
 library(flowCore)
@@ -48,7 +49,7 @@ xyplot(FSC.A~FSC.H, data=flowData, xlim=c(0,3e6), ylim=c(0,3e6),
        stat=T, pos=0.5, abs=T)
 
 ##############################
-#2. Generate Gate for debris
+#2. Generate Gate for debris based on forward scatter and side scatter
 plot(flowData[[1]], c('FSC.A','SSC.A'), xlim=c(0,3e6), ylim=c(0,3e5), smooth=F)
 Bgate <- locator(10)
 gm.2 <- matrix(,10,2)
@@ -57,10 +58,10 @@ gm.2[,1] <- Bgate$x
 gm.2[,2] <- Bgate$y
 pg.nondebris <- polygonGate(filterId="nonDebris",.gate=gm.2)
 
-#test that the singlet gate looks reasonable for the sample
+#test that the debris gate looks reasonable for the sample
 xyplot(SSC.A ~ FSC.A, data=flowData[[1]], displayFilter=TRUE, xlim=c(0,3e6), ylim=c(0,3e6), filter=pg.nondebris, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T)
 
-#test that the gate looks reasonable over all the samples
+#test that the decris gate looks reasonable over all the samples
 xyplot(SSC.A ~ FSC.A, data=flowData, displayFilter=TRUE, xlim=c(0,3e5), ylim=c(0,3e6), filter=pg.nondebris, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T)
 
 ##############################
@@ -73,10 +74,10 @@ gm.3[,1] <- Cgate$x
 gm.3[,2] <- Cgate$y
 pg.nongfp <- polygonGate(filterId="GFPneg",.gate=gm.3)
 
-#test that the singlet gate looks reasonable for the sample
+#test that the non-fluorescing gate looks reasonable for the sample
 xyplot(FL1.A~FSC.A,data=flowData[[1]], xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.nongfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T)
 
-#test that the gate looks reasonable over all the samples
+#test that the non-fluorescing gate looks reasonable over all the samples
 xyplot(FL1.A~FSC.A,data=flowData, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.nongfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T)
 
 ##############################
@@ -89,16 +90,35 @@ gm.4[,1] <- Dgate$x
 gm.4[,2] <- Dgate$y
 pg.gfp <- polygonGate(filterId="GFPpos",.gate=gm.4)
 
-#test that the singlet gate looks reasonable for the sample
+#test that the fluorescing gate looks reasonable for the sample
 xyplot(FL1.A~FSC.A,data=flowData[[1]], xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.gfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T)
 
-#test that the gate looks reasonable over all the samples
+#test that the fluorescing gate looks reasonable over all the samples
 xyplot(FL1.A~FSC.A,data=flowData, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.gfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T)
 
 ################################
-#5. Save the gate information to an R data file
 
-rm(list=c(flowData))
+#5. Generate Gate for high fluorescencing cells
+plot(flowData[[6]], c('FSC.A','FL1.A'), xlim=c(0,5e6), ylim=c(0,5e4), smooth=F)
+Egate <- locator(10)
+gm.5 <- matrix(,10,2)
+colnames(gm.5) <- c('FSC.A','FL1.A')
+gm.5[,1] <- Egate$x
+gm.5[,2] <- Egate$y
+pg.hi.gfp <- polygonGate(filterId="hiGFPpos",.gate=gm.5)
+
+#test that the high fluorescing gate looks reasonable for the sample
+xyplot(FL1.A~FSC.A,data=flowData[[6]], xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.hi.gfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T)
+
+#test that the fluorescing gate looks reasonable over all the samples
+xyplot(FL1.A~FSC.A,data=flowData, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.hi.gfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T)
+
+
+################################
+
+#6. Save the gate information to an R data file
+
+rm(list=c("flowData"))
 save.image(file="gates.Rdata")
 
 
