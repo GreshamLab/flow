@@ -62,6 +62,9 @@ requireInstall("flowViz",isBioconductor=T)
 
 ```
 ## Loading required package: flowViz
+```
+
+```
 ## Loading required package: lattice
 ```
 
@@ -144,30 +147,18 @@ sample.sheet.1 <- read.csv(paste(dir1, "SampleSheet.csv", sep="/"))
 
 ```r
 #Check how many cells were counted in each fcs file
-fsApply(flowData.1, each_col, length)
+fsApply(flowData.1, each_col, length)[1:6]
 ```
 
 ```
-##         FSC.A SSC.A FL1.A FL2.A FL3.A FL4.A FSC.H SSC.H FL1.H FL2.H FL3.H
-## A01.fcs 50000 50000 50000 50000 50000 50000 50000 50000 50000 50000 50000
-## A02.fcs 50000 50000 50000 50000 50000 50000 50000 50000 50000 50000 50000
-## A03.fcs 50000 50000 50000 50000 50000 50000 50000 50000 50000 50000 50000
-## A04.fcs 50000 50000 50000 50000 50000 50000 50000 50000 50000 50000 50000
-## A05.fcs 50000 50000 50000 50000 50000 50000 50000 50000 50000 50000 50000
-## A06.fcs 50000 50000 50000 50000 50000 50000 50000 50000 50000 50000 50000
-##         FL4.H Width  Time
-## A01.fcs 50000 50000 50000
-## A02.fcs 50000 50000 50000
-## A03.fcs 50000 50000 50000
-## A04.fcs 50000 50000 50000
-## A05.fcs 50000 50000 50000
-## A06.fcs 50000 50000 50000
+## [1] 50000 50000 50000 50000 50000 50000
 ```
 
 ```r
+total <- fsApply(flowData.1, each_col, length)[1:6]
 #fsApply(flowData.2, each_col, length)
 
-#Print the medians of data
+#Print the medians of data values for each measurement
 fsApply(flowData.1, each_col, median)
 ```
 
@@ -193,11 +184,13 @@ fsApply(flowData.1, each_col, median)
 ```
 
 
-###Step 3: apply filters to data
+###Step 3: apply filters to data and generate plots showing the effect on filtering
 
 ```r
-#Subset the filtered data
-flowData.1.1 <- Subset(flowData.1, pg.singlets) #this filters doublets
+##Subset the data by applying sequential gates##
+
+#this filters doublets
+flowData.1.1 <- Subset(flowData.1, pg.singlets) 
 fsApply(flowData.1.1, each_col, length)[1:6]
 ```
 
@@ -206,7 +199,15 @@ fsApply(flowData.1.1, each_col, length)[1:6]
 ```
 
 ```r
-filterData.1.1.1 <- Subset(flowData.1.1, pg.nondebris) #this removes debris
+singlets <- fsApply(flowData.1.1, each_col, length)[1:6]
+barplot(singlets/total, ylim=c(0,1), ylab = "Proportion singlet cells", names.arg=sample.sheet.1[,1])
+```
+
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
+
+```r
+#this removes debris from the singlet cells
+filterData.1.1.1 <- Subset(flowData.1.1, pg.nondebris) 
 fsApply(filterData.1.1.1, each_col, length)[1:6]
 ```
 
@@ -215,7 +216,17 @@ fsApply(filterData.1.1.1, each_col, length)[1:6]
 ```
 
 ```r
-gfp.neg <- Subset(filterData.1.1.1, pg.nongfp)
+non.debris <- fsApply(filterData.1.1.1, each_col, length)[1:6]
+barplot(non.debris/total, ylim=c(0,1), ylab = "Proportion singlet and nondebris cells", names.arg=sample.sheet.1[,1])
+```
+
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-4-2.png)<!-- -->
+
+```r
+#non.debris is the filtered data that will be used for all subsequent analyses
+
+#this identifies nongfp cells
+gfp.neg <- Subset(filterData.1.1.1, pg.nongfp) 
 fsApply(gfp.neg, each_col, length)[1:6]
 ```
 
@@ -224,7 +235,15 @@ fsApply(gfp.neg, each_col, length)[1:6]
 ```
 
 ```r
-gfp.pos <- Subset(filterData.1.1.1, pg.gfp)
+non.gfp <- fsApply(gfp.neg, each_col, length)[1:6]
+barplot(non.gfp/non.debris, ylim=c(0,1), ylab = "Proportion cells with no GFP", names.arg=sample.sheet.1[,1])
+```
+
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-4-3.png)<!-- -->
+
+```r
+#this identifies gfp cells
+gfp.pos <- Subset(filterData.1.1.1, pg.gfp) 
 fsApply(gfp.pos, each_col, length)[1:6]
 ```
 
@@ -233,11 +252,27 @@ fsApply(gfp.pos, each_col, length)[1:6]
 ```
 
 ```r
-gfp.hi <- Subset(filterData.1.1.1, pg.hi.gfp)
-fsApply(gfp.hi , each_col, length)[1:6]
+gfp.cells <- fsApply(gfp.pos, each_col, length)[1:6]
+barplot(gfp.cells/non.debris, ylim=c(0,1), ylab = "Proportion cells with GFP", names.arg=sample.sheet.1[,1])
+```
+
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-4-4.png)<!-- -->
+
+```r
+#this identifies high GFP cells
+gfp.hi <- Subset(filterData.1.1.1, pg.hi.gfp) 
+fsApply(gfp.hi, each_col, length)[1:6]
 ```
 
 ```
 ## [1]     0  3407 37121 37752 39674 39601
 ```
+
+```r
+hi.gfp.cells <- fsApply(gfp.hi, each_col, length)[1:6]
+barplot(hi.gfp.cells/non.debris, ylim=c(0,1), ylab = "Proportion cells with high GFP", names.arg=sample.sheet.1[,1])
+```
+
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-4-5.png)<!-- -->
+
 

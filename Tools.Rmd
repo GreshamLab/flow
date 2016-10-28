@@ -1,0 +1,371 @@
+---
+title: "Tools"
+author: "David Gresham"
+date: "10/28/2016"
+output: html_document
+---
+
+###Step 4: Transform data and create gates to filter out debris
+
+Apply logicle tranformation of data
+```{r}
+#Perform the logicle transform, which is a log transform for high values that transitions to a linear transformation near zero values
+lgcl <- logicleTransform(w = 0.5, t= 10000, m=4.5) #the parameters w,t, and m define the transformation parameters
+
+#Dataset 1 tranformation applied to every channel except width and time
+dataLGCLTransform.1 <- transform(flowData.1,'FSC.A' = lgcl(`FSC.A`), 'SSC.A' =lgcl(`SSC.A`), 'FL1.A' = lgcl(`FL1.A`), 'FL2.A' = lgcl(`FL2.A`), 'FL3.A' = lgcl(`FL3.A`), 'FL4.A' = lgcl(`FL4.A`),'FSC.H' = lgcl(`FSC.H`),'SSC.H' = lgcl(`SSC.H`),'FL1.H' = lgcl(`FL1.H`),'FL2.H' = lgcl(`FL2.H`),'FL3.H' = lgcl(`FL3.H`),'FL4.H' = lgcl(`FL4.H`)) 
+
+#Dataset 2 tranformation applied to every channel
+dataLGCLTransform.2 <- transform(flowData.2,'FSC.A' = lgcl(`FSC.A`), 'SSC.A' =lgcl(`SSC.A`), 'FL1.A' = lgcl(`FL1.A`), 'FL2.A' = lgcl(`FL2.A`), 'FL3.A' = lgcl(`FL3.A`), 'FL4.A' = lgcl(`FL4.A`),'FSC.H' = lgcl(`FSC.H`),'SSC.H' = lgcl(`SSC.H`),'FL1.H' = lgcl(`FL1.H`),'FL2.H' = lgcl(`FL2.H`),'FL3.H' = lgcl(`FL3.H`),'FL4.H' = lgcl(`FL4.H`)) 
+
+
+xyplot(FSC.A ~ SSC.A, data=dataLGCLTransform.1, ylim=c(3,8),xlim=c(3,8), displayFilter=TRUE, filter=rectGate, smooth=F, xbin=128, stat=T, pos=0.5, abs=T)
+
+#Subset the filtered data
+filterData.1 <- Subset(dataLGCLTransform.1, rectGate) #this gets the filtered data in a new flowSet
+filterData.2 <- Subset(dataLGCLTransform.2, rectGate) #this gets the filtered data in a new flowSet
+
+##Apply a manually drawing gate based on FSC.A and FSC.H to remove values that are doublets for haploid cells.  
+
+
+
+#To look at the effect of time on signal (of which there shouldn't be any)
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[1]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[2]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[3]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[4]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[5]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[6]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[7]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[8]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[9]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[10]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+
+
+
+
+##Apply a rectangle gate based on FSC and SSC to remove values that we have determined are typically debris for haploid cells.  This should be adjusted if the cell type is different
+rectGate <- rectangleGate("FSC.A"= c(5.6,7.6),"SSC.A" = c(4.6,6.8))
+
+#Subset the filtered data to remove outliers defined by FFC and SSC 
+filterData <- Subset(dataLGCLTransform, rectGate) 
+
+#Check medians of filtered data
+fsApply(filterData, each_col, median)
+```
+
+Plot the rectangle gate used for filtering and determine the proportion of cells used for subsequent analysis
+```{r}
+##Plot the rectangle gate used to filter on the basis of SSC and FSC to ensure that most cells are retained in analysis.
+xyplot(FSC.A ~ SSC.A, data=dataLGCLTransform, ylim=c(3,8),xlim=c(3,8), displayFilter=TRUE, filter=rectGate, smooth=F, xbin=128, stat=T, pos=0.5, abs=T)
+```
+
+Plot an overview of the data
+```{r}
+##Plot FFS versus SSC
+xyplot(SSC.A ~ FSC.A, data=filterData, ylim=c(3,8),xlim=c(3,8), smooth=F, xbin=128)
+
+##Plot FL1(GFP) versus FSC 
+xyplot(FL1.A ~ FSC.A, data=filterData, ylim=c(2,7),xlim=c(5,8), smooth=F, xbin=128)
+
+##Plot FL2(mCherry) versus FSC 
+xyplot(FL2.A ~ FSC.A, data=filterData, ylim=c(2,7),xlim=c(5,8), smooth=F, xbin=128)
+
+##Plot FL1 (GFP) versus FL2 (Red)
+xyplot(FL1.A ~ FL2.A, data=filterData, ylim=c(1,8),xlim=c(0,6), smooth=F, xbin=128)
+
+```
+
+
+###Step 5: Quantify fluorescence for each sample and plot a histogram
+
+diagnostic values can be defined for plotting purposes
+```{r}
+#define critical values that can superimposed on plots for easy visual comparison
+
+gfp.bg <- 3.9  #a background value for GFP
+gfp.wt <- 5.9 #a value for wildtype GFP expression
+red.bg <- 3.03 #a background value for the red channel
+red.wt <- 3.75 #a value for wildtype Red expression
+haploid.fsc <- 6.43 #an empirical value for forward scatter for haploids
+diploid.fsc <- 6.54 #an empirical value for forward scatter for diploids
+gfp.norm <- 0.935 #an empricial value for gfp expression normalized by forward scatter
+red.norm <- 0.57 #an empricial value for red expression normalized by forward scatter
+gfp.red.norm <- 1.5 #an empricial value for gfp expression normalized by red channel
+
+```
+
+
+```{r}
+#record summary statistics in a matrix 
+summary.stats <- matrix(data = NA, nrow = length(filterData), ncol = 18, dimnames = list(sampleNames(filterData),c("FSC_median","FSC_mean", "FSC_sd","FL1_median", "FL1_mean","FL1_sd","normalizedGFP_median", "normalizedGFP_mean", "normalizedGFP_sd","FL2_median","FL2_mean","FL2_sd","normalizedRed_median","normalizedRed_mean", "normalizedRed_sd","GFPnormalizedByRed_median", "GFPnormalizedByRed_mean","GFPnormalizedByRed_sd")))
+
+#retain ratio of GFP(i.e. FL1.A) to FSC.A for generating boxplot as well as FSC and FL1A 
+total <- min(fsApply(filterData, each_col, length)) #use the sample containing the minimum number of points after size-based filtering to define the size of the matrix 
+
+print(total)
+
+comparison.FSC <- matrix(data = NA, nrow = total, ncol = length(filterData), byrow = FALSE,dimnames = NULL)
+comparison.FL1 <- matrix(data = NA, nrow = total, ncol = length(filterData), byrow = FALSE,dimnames = NULL)
+comparison.FL2 <- matrix(data = NA, nrow = total, ncol = length(filterData), byrow = FALSE,dimnames = NULL)
+comparison.FL1NormFsc <- matrix(data = NA, nrow = total, ncol = length(filterData), byrow = FALSE,dimnames = NULL)
+comparison.FL2NormFsc <- matrix(data = NA, nrow = total, ncol = length(filterData), byrow = FALSE,dimnames = NULL)
+comparison.FL1NormFL2 <- matrix(data = NA, nrow = total, ncol = length(filterData), byrow = FALSE,dimnames = NULL)
+#analyzed.samples <- data.frame(matrix(data = NA, nrow = dim(fsApply(flowData, each_col, length))[1], ncol = 5, byrow = TRUE,dimnames = NULL))
+analyzed.samples <- data.frame("Well" = character(0), "Strain" = character(0), "Genotype"=character(0), "Ploidy"=character(0), "Media"=character(0) )
+#for each sample plot a histogram of the normalized data, raw FSC and raw GFP per row
+par(mfrow=c(1,2), mar=c(5.1,2.1,2.1,2.1), oma=c(1.5,2,1,1))
+
+#extract data from flowFrames to plot histograms of values and record summary statistics
+for (i in 1:length(filterData)){
+ 
+  temp <- exprs(filterData[[i]]) #exprs() extracts a matrix of the values from the flowframe
+ 
+  sample.info <- sample.sheet[sample.sheet$Well==unlist(strsplit(sampleNames(filterData)[i], "[.]"))[1],] #get the info from the sample sheet corresponding to the well name.
+  analyzed.samples <-  rbind(analyzed.samples,sample.info)
+  
+  ##########################################
+  #record summary statistics for the sample#
+  ##########################################
+  
+  #FSC
+  summary.stats[i,1] <- median(temp[,1]) 
+  summary.stats[i,2] <-mean(temp[,1])  
+  summary.stats[i,3] <- sd(temp[,1])
+  #FL1
+  summary.stats[i,4] <- median(temp[,3])
+  summary.stats[i,5] <-mean(temp[,3])  
+  summary.stats[i,6] <- sd(temp[,3])
+  #FL1 (GFP) divided by FSC
+  summary.stats[i,7] <- median(temp[,3]/temp[,1])
+  summary.stats[i,8] <-mean(temp[,3]/temp[,1])  
+  summary.stats[i,9] <- sd(temp[,3]/temp[,1])
+  #FL2
+  summary.stats[i,10] <- median(temp[,4])
+  summary.stats[i,11] <-mean(temp[,4])  
+  summary.stats[i,12] <- sd(temp[,4])
+  #FL2 (Red) divided by FSC
+  summary.stats[i,13] <- median(temp[,4]/temp[,1])
+  summary.stats[i,14] <-mean(temp[,4]/temp[,1])  
+  summary.stats[i,15] <- sd(temp[,4]/temp[,1])
+  #FL1 (GFP) divided by FL2 (Red)
+  summary.stats[i,16] <- median(temp[,3]/temp[,4])
+  summary.stats[i,17] <-mean(temp[,3]/temp[,4])  
+  summary.stats[i,18] <- sd(temp[,3]/temp[,4])  
+  
+  ##############################################
+  #plot histograms of the channels of interest##
+  ##############################################
+
+  ###############
+  #Green channel#
+  ###############
+  
+  #FL1 (GFP)
+  hist(temp[,3], br=500, xlab = "FL1", main = "FL1") 
+  abline(v=gfp.bg, col="yellow", lty=2, lwd=2)
+  abline(v=gfp.wt, col="green", lty=2, lwd=2) 
+  legend("topleft",  legend=paste("median FL1 = ",round(median(temp[,3]), digits=4),sep=""))
+
+  #GFP divided by FSC
+  hist(temp[,3]/temp[,1], br=500, xlim=c(0,1.5), xlab = "FL1/FSC", main = "FL1/FSC") 
+  abline(v=gfp.norm, col="green", lty=2, lwd=2 )
+  legend("topleft",  legend=paste("median GFP / FSC=",round(median(temp[,3]/temp[,1]), digits=4),sep=""))
+  
+  mtext(paste("Well = ", sample.info[1,1], " ; Strain = ", sample.info[1,2], " ; Genotype = ", sample.info[1,3], " ; Ploidy = ", sample.info[1,4], " ; Media = ", sample.info[1,5], sep=""), outer = TRUE, cex = 1.0)
+  
+  ###############
+  #Red channel#
+  ###############
+  #FL2 (Red)
+  hist(temp[,4], br=500, xlab = "FL2", main = "FL2", xlim=c(1,8)) 
+  abline(v=red.bg, col="yellow", lty=2, lwd=2)
+  abline(v=red.wt, col="red", lty=2, lwd=2) 
+  legend("topleft",  legend=paste("median FL2=",round(median(temp[,4]), digits=4),sep=""))
+ 
+  #FL2 divided by FSC
+  hist(temp[,4]/temp[,1], br=500, xlim=c(0,1.5), xlab = "FL2/FSC", main = "FL2/FSC") 
+  abline(v=red.norm, col="red", lty=2, lwd=2 )
+  legend("topleft",  legend=paste("median FL2 / FSC=",round(median(temp[,4]/temp[,1]), digits=4),sep=""))
+
+  mtext(paste("Well = ", sample.info[1,1], " ; Strain = ", sample.info[1,2], " ; Genotype = ", sample.info[1,3], " ; Ploidy = ", sample.info[1,4], " ; Media = ", sample.info[1,5], sep=""), outer = TRUE, cex = 1.0)
+  
+  ###############
+  #Other#########
+  ###############
+  
+  #FL1 divided by FL2
+  hist(temp[,4]/temp[,3], br=500, xlim=c(0,1.5), xlab = "FL2/FL1", main = "FL1/FL2") 
+  abline(v=gfp.red.norm, col="purple", lty=2, lwd=2)
+  legend("topleft",  legend=paste("median FL1 / FL2=",round(median(temp[,4]/temp[,3]), digits=4),sep=""))
+
+    #FSC
+  hist(temp[,1], br=500, xlab = "FSC", main = "FSC", xlim=c(4,8)) 
+  abline(v=haploid.fsc, col="blue", lty=2, lwd=2)
+  abline(v=diploid.fsc, col="grey", lty=2, lwd=2)
+  legend("topleft",  legend=paste("median FSC=",round(median(temp[,1]), digits=4),sep=""))
+  
+  mtext(paste("Well = ", sample.info[1,1], " ; Strain = ", sample.info[1,2], " ; Genotype = ", sample.info[1,3], " ; Ploidy = ", sample.info[1,4], " ; Media = ", sample.info[1,5], sep=""), outer = TRUE, cex = 1.0)
+
+print("-------------------------------------------------------")
+print("-----------------------------------")
+print("----------------------")
+
+  ############################################################
+  #keep the data set for generating boxplots comparing values#
+  ############################################################
+  
+  #Note that the amount of data kept for each sample is defined by the lowest count among all the samples.
+  comparison.FSC[1:total,i] <- temp[1:total,1] #FSC
+  comparison.FL1[1:total,i] <- temp[1:total,3] #FL1 (GFP)
+  comparison.FL1NormFsc[1:total,i] <- temp[1:total,3]/temp[1:total,1] #GFP/FSC
+  comparison.FL2[1:total,i] <- temp[1:total,4] #FL2 
+  comparison.FL2NormFsc[1:total,i] <- temp[1:total,4]/temp[1:total,1] #FL2/FSC
+  comparison.FL1NormFL2[1:total,i] <- temp[1:total,3]/temp[1:total,4] #FL1/FL2
+  
+}
+
+par(mfrow=c(1,1)) #change number of plots per row back to standard
+```
+
+###QC plot for effect of time of sampling
+```{r}
+#To look at the effect of time on signal (of which there shouldn't be any)
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[1]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[2]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[3]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[4]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[5]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[6]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[7]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[8]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[9]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+xyplot(FL1.A ~ Time, data=dataLGCLTransform.1[[10]], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(0,500))
+```
+
+
+
+
+###Step 6: Generate boxplot comparing expression values between samples and print table
+
+```{r}
+par(mar=c(8.1,4.1,4.1,2.1)) #create more space at lower margin
+#boxplot(comparison.FSC, names=sampleNames(filterData), notch = TRUE, col = "gray", ylab="FSC", cex.axis=0.5,las=2, outline=F)
+j <- 3 #desired label: 1 = Well, 2 = strain, 3 = genotype, 4 = ploidy, 5 = media
+
+boxplot(comparison.FSC, names=analyzed.samples[,j], notch = TRUE, col = "gray", ylab="FSC", cex.axis=0.5,las=2, outline=F)
+abline(h=haploid.fsc, lty=2, col=2)
+abline(h=diploid.fsc, lty=2, col=3)
+
+boxplot(comparison.FL1, names=analyzed.samples[,j], notch = TRUE, col = "lightgreen", ylab="FL1", cex.axis=0.5,las=2, outline=F)
+abline(h=gfp.bg ,lty=2, lwd=3, col="yellow")
+abline(h=gfp.wt, lty = 2, lwd=3, col="green")
+
+boxplot(comparison.FL1NormFsc, names=analyzed.samples[,j], notch = TRUE, col = "green", ylab="FL1/FSC", cex.axis=0.5,las=2, outline=F)
+abline(h=gfp.norm, lty=2, lwd=3, col="blue")
+
+boxplot(comparison.FL2, names=analyzed.samples[,j], notch = TRUE, col = "pink", ylab="FL2", cex.axis=0.5,las=2, outline=F)
+abline(h=red.bg, lty=2, lwd=3, col="pink")
+abline(h=red.wt, lty=2, lwd=3, col="red")
+
+boxplot(comparison.FL2NormFsc, names=analyzed.samples[,j], notch = TRUE, col = "red", ylab="FL2/FSC", cex.axis=0.5,las=2, outline=F)
+abline(h=red.norm, lty=2, lwd=3, col="red")
+
+boxplot(comparison.FL1NormFL2, names=analyzed.samples[,j], notch = TRUE, col = "purple", ylab="FL1/FL2", cex.axis=0.5,las=2, outline=F)
+abline(h=gfp.red.norm, lty=2, lwd=3, col="purple")
+
+par(mar=c(5.1,4.1,4.1,2.1)) #reset margins to default
+
+#generate a summary table containing all the recorded statistics
+
+summary.stats <- cbind(analyzed.samples, summary.stats)
+print(summary.stats)
+
+
+```
+
+###Step 7: Save plots or tables for use outside of R
+
+```{r}
+#export complete data table
+write.table(summary.stats, file="Data_Summary.txt", row.names=TRUE, quote=F, sep="\t")
+
+#specify which column of datasheet to include as sample name
+j <- 3
+
+#print boxplot of FSC
+pdf(file="Boxplot_FSC.pdf", height=8, width=12)
+par(mar=c(8.1,4.1,4.1,2.1)) #create more space at lower margin
+boxplot(comparison.FSC, names=analyzed.samples[,j], notch = TRUE, col = "gray", ylab="FSC", cex.axis=0.6,las=2, outline=F)
+abline(h=haploid.fsc, lty=2, col=2)
+abline(h=diploid.fsc, lty=2, col=3)
+dev.off()
+par(mar=c(5.1,4.1,4.1,2.1)) #reset margins to default
+
+#print boxplot of FL1
+pdf(file="Boxplot_FL1.pdf", height=8, width=12)
+par(mar=c(8.1,4.1,4.1,2.1)) #create more space at lower margin
+boxplot(comparison.FL1, names=analyzed.samples[,j], notch = TRUE, col = "blue", ylab="FL1", cex.axis=0.6,las=2, outline=F)
+abline(h=gfp.bg ,lty=2, lwd=3, col="yellow")
+abline(h=gfp.wt, lty = 2, lwd=3, col="green")
+dev.off()
+par(mar=c(5.1,4.1,4.1,2.1)) #reset margins to default
+
+#print boxplot of FL1 normalized by forward scatter
+pdf(file="Boxplot_FSCNormalizedGFP.pdf", height=8, width=12)
+par(mar=c(8.1,4.1,4.1,2.1)) #create more space at lower margin
+boxplot(comparison.FL1NormFsc, names=analyzed.samples[,j], notch = TRUE, col = "green", ylab="GFP normalized by FSC", cex.axis=0.6,las=2, outline=F)
+abline(h=gfp.norm, lty=2, lwd=3, col="blue")
+dev.off()
+par(mar=c(5.1,4.1,4.1,2.1)) #reset margins to default
+
+#print boxplot of FL2
+pdf(file="Boxplot_FL2.pdf", height=8, width=12)
+par(mar=c(8.1,4.1,4.1,2.1)) #create more space at lower margin
+boxplot(comparison.FL2, names=analyzed.samples[,j], notch = TRUE, col = "pink", ylab="FL2", cex.axis=0.6,las=2, outline=F)
+abline(h=red.bg, lty=2, lwd=3, col="pink")
+abline(h=red.wt, lty=2, lwd=3, col="red")
+dev.off()
+par(mar=c(5.1,4.1,4.1,2.1)) #reset margins to default
+
+#print boxplot of normalized FL2
+pdf(file="Boxplot_FSCnormalizedFL2.pdf", height=8, width=12)
+par(mar=c(8.1,4.1,4.1,2.1)) #create more space at lower margin
+boxplot(comparison.FL2NormFsc, names=analyzed.samples[,j], notch = TRUE, col = "red", ylab="FL2/FSC", cex.axis=0.6,las=2, outline=F)
+abline(h=red.norm, lty=2, lwd=3, col="red")
+dev.off()
+par(mar=c(5.1,4.1,4.1,2.1)) #reset margins to default
+
+#print boxplot of FL1 normalized by FL2
+pdf(file="Boxplot_FL1normalizedFL2.pdf", height=8, width=12)
+par(mar=c(8.1,4.1,4.1,2.1)) #create more space at lower margin
+boxplot(comparison.FL1NormFL2, names=analyzed.samples[,j], notch = TRUE, col = "purple", ylab="FL1/FL2", cex.axis=0.6,las=2, outline=F)
+abline(h=gfp.red.norm, lty=2, lwd=3, col="purple")
+dev.off()
+par(mar=c(5.1,4.1,4.1,2.1)) #reset margins to default
+
+# # #example of how to to generate a pdf of a histogram
+# j <- 2 #change index depending on which sample you want
+# 
+# temp <- exprs(filterData[[j]]) 
+# pdf(file="Example_histogram.pdf", height=6, width=6)
+# hist(temp[,3]/temp[,1], br=500, xlim=c(0,1.5), xlab = "Normalized expression signal (GFP/FSC)", main =  sampleNames(filterData)[j]) 
+#   legend("topleft",  legend=paste("median=",round(median(temp[,3]/temp[,1]), digits=4),sep=""))
+# dev.off()
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
