@@ -1,0 +1,1 @@
+Well	Strain	Genotype	Ploidy	Media	ExperimentA01	DGY1	no_stain	1N	C-lim-D0.3	expt1A02	DGY1	10uL_500nM	1N	C-lim-D0.3	expt1A03	DGY1	50uL_500nM	1N	C-lim-D0.3	expt1A04	DGY1	100uL_500nM	1N	C-lim-D0.3	expt1A05	DGY1	250uL_500nM	1N	C-lim-D0.3	expt1A06	DGY1	500uL_500nM	1N	C-lim-D0.3	expt1

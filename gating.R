@@ -110,9 +110,15 @@ pg.hi.gfp <- polygonGate(filterId="hiGFPpos",.gate=gm.5)
 #test that the high fluorescing gate looks reasonable for the sample
 xyplot(FL1.A~FSC.A,data=flowData[[6]], xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.hi.gfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T)
 
-#test that the fluorescing gate looks reasonable over all the samples
+#test that the high fluorescing gate looks reasonable over all the samples
 xyplot(FL1.A~FSC.A,data=flowData, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.hi.gfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T)
 
+
+################################
+##In some cases a rectangle gate may be desired, which can be generated as follows
+rectGate <- rectangleGate("FSC.A"= c(0,3.5e6),"SSC.A" = c(0,4.5e6))
+
+xyplot(SSC.A~FSC.A,data=flowData, xlim=c(0,5e6), ylim=c(0,5e4), filter=rectGate, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T)
 
 ################################
 
