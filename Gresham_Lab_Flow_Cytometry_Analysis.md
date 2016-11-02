@@ -2,13 +2,14 @@
 `r Sys.info()[7]`  
 `r Sys.Date()`  
 
-Write a detailed description of your experiment here.  If you still see this text it means that you have not described the experiment and whatever follows is meaningless.
 
-Be sure to include a relevant title
+**Experiment overview**
 
-Delete text containing points 1-3 
+Write a detailed description of your experiment here including the goal of the analysis and your interpretation of the results.   
+If you still see this text it means that you have not described the experiment and whatever follows is meaningless.
+###############################
 
-This code is designed for use with the Accuri flow cytometer, which is equiped with the following lasers and filters
+> This code is designed for use with the Accuri flow cytometer, which is equiped with the following lasers and filters
 
 * Blue laser (488 nm)
   + FL1 filter = 514/20nm   GFP
@@ -17,12 +18,23 @@ This code is designed for use with the Accuri flow cytometer, which is equiped w
 * Yellow/green laser (552 nm)
   + FL2 filter = 610/20nm   mCherry, dtomato
   + FL4 filter = 586/15nm   DsRed
+  
+  
 
-It is also designed for use with the CGSB Aria, which has the following lasers and printers
+**Requirements**  
+In order to run this code you need:  
+  + to predefine your gates using the **gating.R** script  
+  + the **gates.Rdata** workspace, which contains the gates used in this script  
+  + the path of the directory(ies), given the variable names **dir1**, **dir2**... that contain .fcs files named A01.fcs, A02.fcs, A03.fcs...  
+  + a tab delimited sample sheet in each directory with the following rows: <Well>	<Strain>	<Genotype>	<Ploidy>	<Media>	<Experiment>  
+  + the variable names are changed in chunk 2 named "Variable Names"    
 
-In order to run this code you need to predefine your gates using the gating.R script
 
-This script generates a summary of results followed by quality control plots
+
+
+**Output**  
+This script generates a summary of results followed by quality control plots.  
+
 
 
 #Step 1: Load relevant libraries 
@@ -209,9 +221,6 @@ requireInstall("gridExtra")
 #load the Rdata file containing the gates
 load("gates.Rdata") 
 
-#Define how many directories that will be analyzed
-num <- 2
-
 #Define the directory, or directories, containing your .fcs files using absolute path names 
 dir1 <- "/Users/David/Google Drive/Gresham Lab_David/flow/flow cytometry"
 dir2 <- "/Users/David/Google Drive/Gresham Lab_David/flow/flow cytometry"
@@ -222,7 +231,7 @@ flowData.2 <- read.flowSet(path = dir2, pattern=".fcs", alter.names=TRUE)
 
 #Read in the sample sheet that should be in each directory that contains the .fcs files.  
 sample.sheet.1 <- read.delim(paste(dir1, "SampleSheet.txt", sep="/"))
-sample.sheet.2 <- read.delim(paste(dir1, "SampleSheet2.txt", sep="/"))
+sample.sheet.2 <- read.delim(paste(dir2, "SampleSheet2.txt", sep="/"))
 
 #Change names of samples to those specified in the sample sheets
 sampleNames(flowData.1) <- paste(sample.sheet.1[,1], sample.sheet.1[,2], sample.sheet.1[,3], sample.sheet.1[,4], sample.sheet.1[,5], sample.sheet.1[,6], sep=" ")
@@ -408,7 +417,7 @@ singlets <- fsApply(flowData.singlets, each_col, length)[1:samples.num]
 barplot(singlets/total, ylim=c(0,1), ylab = "Proportion singlet cells", las=2, cex.names = 0.5, names.arg=sampleNames(flowData))
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Application of Gates-1.png)<!-- -->
 
 ```r
 #apply debris gate
@@ -426,7 +435,7 @@ non.debris <- fsApply(filteredData, each_col, length)[1:samples.num]
 barplot(non.debris/total, ylim=c(0,1), ylab = "Proportion singlet and nondebris cells", las=2, cex.names = 0.5, names.arg=sampleNames(flowData))
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-3-2.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Application of Gates-2.png)<!-- -->
 
 ```r
 #########
@@ -448,7 +457,7 @@ non.gfp <- fsApply(gfp.neg, each_col, length)[1:samples.num]
 barplot(non.gfp/non.debris, ylim=c(0,1), ylab = "Proportion cells with no GFP", las=2, cex.names = 0.5, names.arg=sampleNames(flowData))
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-3-3.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Application of Gates-3.png)<!-- -->
 
 ```r
 #this gate defines gfp cells
@@ -466,7 +475,7 @@ gfp.cells <- fsApply(gfp.pos, each_col, length)[1:samples.num]
 barplot(gfp.cells/non.debris, ylim=c(0,1), ylab = "Proportion cells with GFP", las=2, cex.names = 0.5, names.arg=sampleNames(flowData))
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-3-4.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Application of Gates-4.png)<!-- -->
 
 ```r
 #this gate defines high GFP cells
@@ -484,7 +493,7 @@ hi.gfp.cells <- fsApply(gfp.hi, each_col, length)[1:samples.num]
 barplot(hi.gfp.cells/non.debris, ylim=c(0,1), ylab = "Proportion cells with high GFP", las=2, cex.names = 0.5, names.arg=sampleNames(flowData))
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-3-5.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Application of Gates-5.png)<!-- -->
 
 #Step 4: Data analysis
 
@@ -575,13 +584,13 @@ for (i in 1:length(filteredData)){
   ###############
   
   #FL1 (GFP)
-  hist(log10(temp[,3]), br=1000, xlab = "FL1", main = "FL1") 
+  hist(log10(temp[,3]), br=1000, xlab = "log10(FL1)", main = "FL1") 
   abline(v=gfp.bg, col="yellow", lty=2, lwd=2)
   abline(v=gfp.wt, col="green", lty=2, lwd=2) 
   legend("topleft",  legend=paste("median FL1 = ",round(median(temp[,3]), digits=4),sep=""))
 
   #GFP divided by FSC
-  hist(temp[,3]/temp[,1], br=500, xlim=c(0,1.5), xlab = "FL1/FSC", main = "FL1/FSC") 
+  hist(temp[,3]/temp[,1], br=500, xlab = "FL1/FSC", main = "FL1/FSC") 
   abline(v=gfp.norm, col="green", lty=2, lwd=2 )
   legend("topleft",  legend=paste("median GFP / FSC=",round(median(temp[,3]/temp[,1]), digits=4),sep=""))
   
@@ -591,13 +600,13 @@ for (i in 1:length(filteredData)){
   #Red channel#
   ###############
   #FL2 (Red)
-  hist(log10(temp[,4]), br=500, xlab = "FL2", main = "FL2") 
+  hist(log10(temp[,4]), br=500, xlab = "log10(FL2)", main = "FL2") 
   abline(v=red.bg, col="yellow", lty=2, lwd=2)
   abline(v=red.wt, col="red", lty=2, lwd=2) 
   legend("topleft",  legend=paste("median FL2=",round(median(temp[,4]), digits=4),sep=""))
  
   #FL2 divided by FSC
-  hist(temp[,4]/temp[,1], br=500, xlim=c(0,1.5), xlab = "FL2/FSC", main = "FL2/FSC") 
+  hist(temp[,4]/temp[,1], br=500, xlab = "FL2/FSC", main = "FL2/FSC") 
   abline(v=red.norm, col="red", lty=2, lwd=2 )
   legend("topleft",  legend=paste("median FL2 / FSC=",round(median(temp[,4]/temp[,1]), digits=4),sep=""))
 
@@ -608,12 +617,12 @@ for (i in 1:length(filteredData)){
   ###############
   
   #FL1 divided by FL2
-  hist(temp[,4]/temp[,3], br=500, xlim=c(0,1.5), xlab = "FL2/FL1", main = "FL1/FL2") 
+  hist(temp[,4]/temp[,3], br=500, xlab = "FL2/FL1", main = "FL1/FL2") 
   abline(v=gfp.red.norm, col="purple", lty=2, lwd=2)
   legend("topleft",  legend=paste("median FL1 / FL2=",round(median(temp[,4]/temp[,3]), digits=4),sep=""))
 
     #FSC
-  hist(log10(temp[,1]), br=500, xlab = "FSC", main = "FSC", xlim=c(4,8)) 
+  hist(log10(temp[,1]), br=500, xlab = "log10(FSC)", main = "FSC", xlim=c(4,8)) 
   abline(v=haploid.fsc, col="blue", lty=2, lwd=2)
   abline(v=diploid.fsc, col="grey", lty=2, lwd=2)
   legend("topleft",  legend=paste("median FSC=",round(median(temp[,1]), digits=4),sep=""))
@@ -639,7 +648,7 @@ print("----------------------")
 }
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-1.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-2.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-3.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-1.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-2.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-3.png)<!-- -->
 
 ```
 ## [1] "-------------------------------------------------------"
@@ -647,7 +656,7 @@ print("----------------------")
 ## [1] "----------------------"
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-4.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-5.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-6.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-4.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-5.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-6.png)<!-- -->
 
 ```
 ## [1] "-------------------------------------------------------"
@@ -655,7 +664,7 @@ print("----------------------")
 ## [1] "----------------------"
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-7.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-8.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-9.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-7.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-8.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-9.png)<!-- -->
 
 ```
 ## [1] "-------------------------------------------------------"
@@ -663,7 +672,7 @@ print("----------------------")
 ## [1] "----------------------"
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-10.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-11.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-12.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-10.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-11.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-12.png)<!-- -->
 
 ```
 ## [1] "-------------------------------------------------------"
@@ -671,7 +680,7 @@ print("----------------------")
 ## [1] "----------------------"
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-13.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-14.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-15.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-13.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-14.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-15.png)<!-- -->
 
 ```
 ## [1] "-------------------------------------------------------"
@@ -679,7 +688,7 @@ print("----------------------")
 ## [1] "----------------------"
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-16.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-17.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-18.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-16.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-17.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-18.png)<!-- -->
 
 ```
 ## [1] "-------------------------------------------------------"
@@ -687,7 +696,7 @@ print("----------------------")
 ## [1] "----------------------"
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-19.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-20.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-21.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-19.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-20.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-21.png)<!-- -->
 
 ```
 ## [1] "-------------------------------------------------------"
@@ -695,7 +704,7 @@ print("----------------------")
 ## [1] "----------------------"
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-22.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-23.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-24.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-22.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-23.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-24.png)<!-- -->
 
 ```
 ## [1] "-------------------------------------------------------"
@@ -703,7 +712,7 @@ print("----------------------")
 ## [1] "----------------------"
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-25.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-26.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-27.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-25.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-26.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-27.png)<!-- -->
 
 ```
 ## [1] "-------------------------------------------------------"
@@ -711,7 +720,7 @@ print("----------------------")
 ## [1] "----------------------"
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-28.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-29.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-30.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-28.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-29.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-30.png)<!-- -->
 
 ```
 ## [1] "-------------------------------------------------------"
@@ -719,7 +728,7 @@ print("----------------------")
 ## [1] "----------------------"
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-31.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-32.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-33.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-31.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-32.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-33.png)<!-- -->
 
 ```
 ## [1] "-------------------------------------------------------"
@@ -727,7 +736,7 @@ print("----------------------")
 ## [1] "----------------------"
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-34.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-35.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-5-36.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-34.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-35.png)<!-- -->![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Data extraction and plotting-36.png)<!-- -->
 
 ```
 ## [1] "-------------------------------------------------------"
@@ -744,15 +753,13 @@ par(mfrow=c(1,1)) #change number of plots per row back to standard
 
 ```r
 par(mar=c(8.1,4.1,4.1,2.1)) #create more space at lower margin
-#boxplot(comparison.FSC, names=sampleNames(filterData), notch = TRUE, col = "gray", ylab="FSC", cex.axis=0.5,las=2, outline=F)
-#j <- 3 #desired label: 1 = Well, 2 = strain, 3 = genotype, 4 = ploidy, 5 = media
 
 boxplot(comparison.FSC, names=sampleNames(filteredData), notch = TRUE, col = "gray", ylab="FSC", cex.axis=0.5,las=2, outline=F)
 abline(h=haploid.fsc, lty=2, col=2)
 abline(h=diploid.fsc, lty=2, col=3)
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Overall data distributions-1.png)<!-- -->
 
 ```r
 boxplot(comparison.FL1, names=sampleNames(filteredData), notch = TRUE, col = "lightgreen", ylab="FL1", cex.axis=0.5,las=2, outline=F)
@@ -760,14 +767,14 @@ abline(h=gfp.bg ,lty=2, lwd=3, col="yellow")
 abline(h=gfp.wt, lty = 2, lwd=3, col="green")
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-6-2.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Overall data distributions-2.png)<!-- -->
 
 ```r
 boxplot(comparison.FL1NormFsc, names=sampleNames(filteredData), notch = TRUE, col = "green", ylab="FL1/FSC", cex.axis=0.5,las=2, outline=F)
 abline(h=gfp.norm, lty=2, lwd=3, col="blue")
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-6-3.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Overall data distributions-3.png)<!-- -->
 
 ```r
 boxplot(comparison.FL2, names=sampleNames(filteredData), notch = TRUE, col = "pink", ylab="FL2", cex.axis=0.5,las=2, outline=F)
@@ -775,21 +782,21 @@ abline(h=red.bg, lty=2, lwd=3, col="pink")
 abline(h=red.wt, lty=2, lwd=3, col="red")
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-6-4.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Overall data distributions-4.png)<!-- -->
 
 ```r
 boxplot(comparison.FL2NormFsc, names=sampleNames(filteredData), notch = TRUE, col = "red", ylab="FL2/FSC", cex.axis=0.5,las=2, outline=F)
 abline(h=red.norm, lty=2, lwd=3, col="red")
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-6-5.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Overall data distributions-5.png)<!-- -->
 
 ```r
 boxplot(comparison.FL1NormFL2, names=sampleNames(filteredData), notch = TRUE, col = "purple", ylab="FL1/FL2", cex.axis=0.5,las=2, outline=F)
 abline(h=gfp.red.norm, lty=2, lwd=3, col="purple")
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-6-6.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/Overall data distributions-6.png)<!-- -->
 
 ```r
 par(mar=c(5.1,4.1,4.1,2.1)) #reset margins to default
@@ -967,20 +974,20 @@ summary.stats <- as.data.frame(summary.stats)
 ```r
 baseline.FL1 <- summary.stats$FL1_median[1]
 
-barplot(summary.stats$FL1_median/baseline.FL1, ylab="Relative expression", las=2, cex.names = 0.5, names.arg=sampleNames(filteredData))
+barplot(summary.stats$FL1_median/baseline.FL1, ylab="Relative FL1 median expression", las=2, cex.names = 0.5, names.arg=sampleNames(filteredData))
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-1-1.png)<!-- -->
 
 ##Quantitation of forward scatter
 
 ```r
 baseline.FSC <- summary.stats$FSC_median[1]
 
-barplot(summary.stats$FSC_median/baseline.FSC, ylab="Relative expression", las=2, cex.names = 0.5, names.arg=sampleNames(filteredData))
+barplot(summary.stats$FSC_median/baseline.FSC, ylab="Relative median FSC", las=2, cex.names = 0.5, names.arg=sampleNames(filteredData))
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-2-1.png)<!-- -->
 
 ##Population composition
 
@@ -989,7 +996,7 @@ pop.composition <- rbind(non.gfp/non.debris,gfp.cells/non.debris,hi.gfp.cells/no
 barplot(pop.composition, ylab="Proportion of population", legend=c("No GFP", "Normal GFP", "High GFP"),las=2, cex.names = 0.5,names.arg=sampleNames(filteredData))
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
 
 #Step 5: Quality control
 
@@ -998,78 +1005,78 @@ barplot(pop.composition, ylab="Proportion of population", legend=c("No GFP", "No
 ```r
 ###First flowset
 #Singlets gate
-xyplot(FSC.A~FSC.H, data=flowData.1, xlim=c(0,3e6), ylim=c(0,3e6), filter=pg.singlets,  smooth=F, xbin=1024, stat=T, pos=0.5, abs=T, main = "First flowset")
+xyplot(FSC.A~FSC.H, data=flowData.1, xlim=c(0,3e6), ylim=c(0,3e6), filter=pg.singlets,  smooth=F, xbin=1024, stat=T, pos=0.5, abs=T, main = "First flowset - singlets gate")
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
 
 ```r
 #Debris gate
-xyplot(SSC.A ~ FSC.A, data=flowData.1, displayFilter=TRUE, xlim=c(0,3e5), ylim=c(0,3e6), filter=pg.nondebris, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T,  main = "First flowset")
+xyplot(SSC.A ~ FSC.A, data=flowData.1, displayFilter=TRUE, xlim=c(0,3e6), ylim=c(0,3e5), filter=pg.nondebris, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T,  main = "First flowset - nondebris gate")
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-10-2.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-4-2.png)<!-- -->
 
 ```r
 #Non-fluorescent population gate
-xyplot(FL1.A~FSC.A,data=flowData.1, displayFilter=TRUE, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.nongfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T,  main = "First flowset")
+xyplot(FL1.A~FSC.A,data=flowData.1, displayFilter=TRUE, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.nongfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T,  main = "First flowset - non GFP gate")
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-10-3.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-4-3.png)<!-- -->
 
 ```r
 #Fluorescent population gate
-xyplot(FL1.A~FSC.A,data=flowData.1, displayFilter=TRUE, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.gfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T, main = "First flowset")
+xyplot(FL1.A~FSC.A,data=flowData.1, displayFilter=TRUE, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.gfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T, main = "First flowset - GFP gate")
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-10-4.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-4-4.png)<!-- -->
 
 ```r
 #High fluorescing gate
-xyplot(FL1.A~FSC.A,data=flowData.1, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.hi.gfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T,  main = "First flowset")
+xyplot(FL1.A~FSC.A,data=flowData.1, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.hi.gfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T,  main = "First flowset - high GFP gate")
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-10-5.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-4-5.png)<!-- -->
 
 ```r
 ################
 ###Second flowset
 #Singlets gate
-xyplot(FSC.A~FSC.H, data=flowData.2, xlim=c(0,3e6), ylim=c(0,3e6), filter=pg.singlets,  smooth=F, xbin=1024, stat=T, pos=0.5, abs=T, main = "Second flowset")
+xyplot(FSC.A~FSC.H, data=flowData.2, xlim=c(0,3e6), ylim=c(0,3e6), filter=pg.singlets,  smooth=F, xbin=1024, stat=T, pos=0.5, abs=T, main = "Second flowset - singlets gate")
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-10-6.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-4-6.png)<!-- -->
 
 ```r
 #Debris gate
-xyplot(SSC.A ~ FSC.A, data=flowData.2, displayFilter=TRUE, xlim=c(0,3e6), ylim=c(0,3e5), filter=pg.nondebris, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T,  main = "Second flowset")
+xyplot(SSC.A ~ FSC.A, data=flowData.2, displayFilter=TRUE, xlim=c(0,3e6), ylim=c(0,3e5), filter=pg.nondebris, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T,  main = "Second flowset  - nondebris gate")
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-10-7.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-4-7.png)<!-- -->
 
 ```r
 #Non-fluorescent population gate
-xyplot(FL1.A~FSC.A,data=flowData.2, displayFilter=TRUE, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.nongfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T,  main = "Second flowset")
+xyplot(FL1.A~FSC.A,data=flowData.2, displayFilter=TRUE, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.nongfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T,  main = "Second flowset - non GFP gate")
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-10-8.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-4-8.png)<!-- -->
 
 ```r
 #Fluorescent population gate
-xyplot(FL1.A~FSC.A,data=flowData.2, displayFilter=TRUE, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.gfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T, main = "Second flowset")
+xyplot(FL1.A~FSC.A,data=flowData.2, displayFilter=TRUE, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.gfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T, main = "Second flowset - GFP gate")
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-10-9.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-4-9.png)<!-- -->
 
 ```r
-#High fluorescing gate
-xyplot(FL1.A~FSC.A,data=flowData.2, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.hi.gfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T,  main = "Second flowset")
+#High fluorescing gate 
+xyplot(FL1.A~FSC.A,data=flowData.2, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.hi.gfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T,  main = "Second flowset - high GFP gate")
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-10-10.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-4-10.png)<!-- -->
 
 ```r
-#####Attempted as look below and is not working
+#####Attempted as loop below to plot each one individually and is not working
 
 for (i in 1:length(filteredData)){
 
@@ -1087,7 +1094,6 @@ xyplot(FL1.A~FSC.A,data=flowData[i], displayFilter=TRUE, xlim=c(0,5e6), ylim=c(0
 
 #High fluorescing gate
 xyplot(FL1.A~FSC.A,data=flowData[i], xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.hi.gfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T, main = sampleNames(flowData)[i])
-
 
 }
 ```
@@ -1114,7 +1120,21 @@ i <- 1
 xyplot(FL1.A ~ Time, data=dataLGCLTransform[i], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(150,250), main = sampleNames(filteredData)[i])
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
+
+```r
+i <- 2
+xyplot(FL1.A ~ Time, data=dataLGCLTransform[i], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(150,250), main = sampleNames(filteredData)[i])
+```
+
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-6-2.png)<!-- -->
+
+```r
+i <- 3
+xyplot(FL1.A ~ Time, data=dataLGCLTransform[i], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(150,250), main = sampleNames(filteredData)[i])
+```
+
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-6-3.png)<!-- -->
 
 ```r
 ####Attempted as loop and will not work 
@@ -1126,7 +1146,8 @@ xyplot(FL1.A ~ Time, data=dataLGCLTransform[i], smooth=F,  stat=T, pos=0.5, abs=
 ##Plots of FL1 versus FSC
 
 ```r
-xyplot(FL1.A ~ FSC.A, data=dataLGCLTransform[i], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(4,8), ylim=c(2,6), sampleNames(filteredData)[i])
+i <- 1
+xyplot(FL1.A ~ FSC.A, data=dataLGCLTransform[i], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(4,8), sampleNames(filteredData)[i])
 ```
 
 ```
@@ -1134,7 +1155,31 @@ xyplot(FL1.A ~ FSC.A, data=dataLGCLTransform[i], smooth=F,  stat=T, pos=0.5, abs
 ## filter object or a named list of filter objects.
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
+
+```r
+i <- 2
+xyplot(FL1.A ~ FSC.A, data=dataLGCLTransform[i], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(4,8), sampleNames(filteredData)[i])
+```
+
+```
+## Warning: 'filter' must either be a filtersList,filterResultList, a single
+## filter object or a named list of filter objects.
+```
+
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-7-2.png)<!-- -->
+
+```r
+i <- 3
+xyplot(FL1.A ~ FSC.A, data=dataLGCLTransform[i], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(4,8), sampleNames(filteredData)[i])
+```
+
+```
+## Warning: 'filter' must either be a filtersList,filterResultList, a single
+## filter object or a named list of filter objects.
+```
+
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-7-3.png)<!-- -->
 
 ```r
 ####Attempted as loop and will not work 
@@ -1146,6 +1191,7 @@ xyplot(FL1.A ~ FSC.A, data=dataLGCLTransform[i], smooth=F,  stat=T, pos=0.5, abs
 ##Plots of FSC versus SSC
 
 ```r
+i <- 1
 xyplot(SSC.A ~ FSC.A, data=dataLGCLTransform[i], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(4,8), ylim=c(4,8), sampleNames(filteredData)[i])
 ```
 
@@ -1154,7 +1200,31 @@ xyplot(SSC.A ~ FSC.A, data=dataLGCLTransform[i], smooth=F,  stat=T, pos=0.5, abs
 ## filter object or a named list of filter objects.
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+
+```r
+i <- 2
+xyplot(SSC.A ~ FSC.A, data=dataLGCLTransform[i], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(4,8), ylim=c(4,8), sampleNames(filteredData)[i])
+```
+
+```
+## Warning: 'filter' must either be a filtersList,filterResultList, a single
+## filter object or a named list of filter objects.
+```
+
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-8-2.png)<!-- -->
+
+```r
+i <- 3
+xyplot(SSC.A ~ FSC.A, data=dataLGCLTransform[i], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(4,8), ylim=c(4,8), sampleNames(filteredData)[i])
+```
+
+```
+## Warning: 'filter' must either be a filtersList,filterResultList, a single
+## filter object or a named list of filter objects.
+```
+
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-8-3.png)<!-- -->
 
 ```r
 ####Attempted as loop and will not work 
