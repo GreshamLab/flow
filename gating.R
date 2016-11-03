@@ -116,9 +116,9 @@ xyplot(FL1.A~FSC.A,data=flowData, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.hi.gfp
 
 ################################
 ##In some cases a rectangle gate may be desired, which can be generated as follows
-rectGate <- rectangleGate("FSC.A"= c(0,3.5e6),"SSC.A" = c(0,4.5e6))
+#rectGate <- rectangleGate("FSC.A"= c(0,3.5e6),"SSC.A" = c(0,4.5e6))
 
-xyplot(SSC.A~FSC.A,data=flowData, xlim=c(0,5e6), ylim=c(0,5e4), filter=rectGate, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T)
+#xyplot(SSC.A~FSC.A,data=flowData, xlim=c(0,5e6), ylim=c(0,5e4), filter=rectGate, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T)
 
 ################################
 
