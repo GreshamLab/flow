@@ -32,12 +32,13 @@ fsApply(flowData, each_col, length)
 ##############################
 #1. Generate gate for singlet cells
 #this gate is defined on the basis of the relationship between forward scatter height and area
-plot(flowData[[1]], c('FSC.H','FSC.A'), xlim=c(0,3e6), ylim=c(0,3e6),smooth=F)
-Agate <- locator(10)
-gm.1 <- matrix(,10,2)
-colnames(gm.1) <- c('FSC.H','FSC.A')
-gm.1[,1] <- Agate$x
-gm.1[,2] <- Agate$y
+plot(flowData[[1]], c('FSC.H','FSC.A'), 
+  xlim=c(0,3e6), ylim=c(0,3e6),
+  main="keep clicking to surround the singles, then right click when you're done",
+  smooth=F)
+Agate <- locator(type="l",col="red") 
+  # alternative approach could be devised with identify()
+gm.1 <- as.matrix(data.frame(FSC.H=Agate$x,FSC.A=Agate$y))
 pg.singlets <- polygonGate(filterId="singlets",.gate=gm.1)
 
 #test that the singlet gate looks reasonable for the sample
