@@ -88,7 +88,7 @@ work. Don't have this folder? Download it (look up).
 
 
 ```{r readingFCSandSampleSheet, cache=F}
-dataDirectoryz <- c("exampleDataset1")
+dataDirectoryz <- c("exampleFlowDataset1")
 
 for (dataDirectory in dataDirectoryz) {
 
@@ -113,7 +113,13 @@ print("other statz?")
 print(fsApply(oneBigFlowSet,each_col,median))
 ```
 
-Now you have `oneBigFlowSet`. Great.
+Now you have `oneBigFlowSet`. Great. For gating, we'll turn that into
+a data.frame:
+
+```{r}
+source("src/fc2df.R")
+datar <- fc2df(oneBigFlowSet)
+```
 
 
 #Step 3: gate
@@ -121,47 +127,26 @@ Now you have `oneBigFlowSet`. Great.
 If you screw it up, delete the RData file of the gates.
 
 ```{r gating, cache=F}
-
-plot(flowData[[1]], c('FSC.H','FSC.A'), 
-  xlim=c(0,3e6), ylim=c(0,3e6),
-  main="keep clicking to surround the singles, then right click when you're done",
-smooth=F)
-
-plot(flowData[[1]], c('FSC.A','SSC.A'), xlim=c(0,3e6), ylim=c(0,3e5), smooth=F)
-Bgate <- locator(10)
-gm.2 <- matrix(,10,2)
-colnames(gm.2) <- c('FSC.A','SSC.A')
-gm.2[,1] <- Bgate$x
-gm.2[,2] <- Bgate$y
-pg.nondebris <- polygonGate(filterId="nonDebris",.gate=gm.2)
-
-plot(flowData[[1]], c('FSC.A','FL1.A'), xlim=c(0,5e6), ylim=c(0,5e4), smooth=F)
-Cgate <- locator(10)
-gm.3 <- matrix(,10,2)
-colnames(gm.3) <- c('FSC.A','FL1.A')
-gm.3[,1] <- Cgate$x
-gm.3[,2] <- Cgate$y
-pg.nongfp <- polygonGate(filterId="GFPneg",.gate=gm.3)
-
 gateFilename <- paste0("gatesFor",digest::digest(datar),".RData")
 if (file.exists(gateFilename)) {
   load(gateFilename)
-  } else {
-  with(datar[sample(1:nrow(datar),1e5),],
-    plot(x=log10(FSC.A),y=log10(FSC.H),pch=16,cex=0.2,
-      main=paste0("keep clicking to surround the singles, then right",
-        " click when you're done"),
-      xlim=c(range(log10(datar$FSC.A))),
-      ylim=c(range(log10(datar$FSC.H))))
-    )
-  singletGP <- locator(type="l",col="red") 
-  dev.off()
-  singletG <- as.matrix(
-    data.frame(FSC.H=singletGP$x,FSC.A=singletGP$y))
-  gateSinglets <- polygonGate(filterId="singlets",.gate=singletG)
-  save(file=gateFilename,list=c())
+} else {
+  source("src/gator.R")
+  gatez <- list()
+  gatez[["singlet"]] <- gator2d(datar,ehx="FSC.A",why="FSC.H") 
+  gatez[["cells"]] <- gator2d(datar,ehx="FSC.A",why="SSC.A") 
+  gatez[["gfpPos"]] <- gator2d(datar,ehx="FSC.A",why="FL1.A") 
+  save(file=gateFilename,list=c("gatez"))
 }
 ```
+
+how they look?
+
+```{r gateCheck, cache=F}
+
+```
+
+
 
 Subset the data by applying sequential gates
 
