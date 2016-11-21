@@ -45,12 +45,11 @@ In order to run this code you need:
 **Output**  
 This script generates a summary of results followed by quality control plots.  
 
-
-
 #Step 1: Load relevant libraries 
-```{r Libraries, eval=TRUE}
-# This is a function that just makes sure you have a package, or installs it for you without prompting
 
+This is a function that just makes sure you have a package, or installs it for you without prompting
+
+```{r Libraries, eval=TRUE}
 source("src/requireInstall.R")
 requireInstall("flowCore",isBioconductor=T)
 requireInstall("flowViz",isBioconductor=T)
@@ -61,63 +60,66 @@ requireInstall("ggplot2")
 requireInstall("flowWorkspace")
 requireInstall("ggcyto", isBioconductor=T)
 requireInstall("gridExtra")
-
-
 ```
 
-#Step 2: Read in .fcs files, an Rdata file containing the gates sample sheet(s) that contains four columns with 
-* column1 = Well
-* column2 = Strain
-* column3 = Staining
-* column4 = Media
-* column5 = Userdefined
+#Step 2: Read in .fcs files
 
-```{r Variable definitions}
-#Read in all data for analysis. Data should be in individual directories that contain .fcs files and a corresponding sample sheet with a generic format. FCS file names should be unaltered e.g AO1.fcs, A02.fcs, ...H12.fcs 
-#An abitrary number of directories can be used named dir1, dir2, dir3...with a corresponding flowData.1, flowData.2, flowData.3...and sample.sheet.1, sample.sheet.2, sample.sheet.3...
+Read in all data for analysis. Data should be in individual directories that contain .fcs files and a corresponding sample sheet with a generic format. 
+FCS file names need to match the `SampleSheet.txt`.
 
-#load the Rdata file containing the gates
-load("gates.Rdata") 
+Want to make your `SampleSheet.txt`? Use a GUI spreadsheet thingy,
+like excel or googledocs or localc or `edit()` in R.
+The format is:
 
-#Define the directory, or directories, containing your .fcs files using absolute path names 
-dir1 <- "/Users/David/Google Drive/Gresham Lab_David/flow/flow cytometry"
-dir2 <- "/Users/David/Google Drive/Gresham Lab_David/flow/flow cytometry"
+| FileName | Variable1 | Variable2 | ... |
+|:---|:---|:---|:---|
+|A01.fcs|Ploidy_1.5ploid|Dye_acridineOrange|...|
+|A02|Ploidy_2.5ploid|Dye_acridineOrange|...|
+|A03.fcs|Ploidy_1.5ploid|Dye_sytoselect|...|
 
-#Read in all the fcs files in the directory, with alter.names changing "-" to "."  
-flowData.1 <- read.flowSet(path = dir1, pattern=".fcs", alter.names=TRUE)
-flowData.2 <- read.flowSet(path = dir2, pattern=".fcs", alter.names=TRUE)
+Why `Variable1` etc? It's generalizable to more than just one 
+exerperiment, yet the key value relationship is preserved with the
+`key_value` format.
 
-#Read in the sample sheet that should be in each directory that contains the .fcs files.  
-sample.sheet.1 <- read.delim(paste(dir1, "SampleSheet.txt", sep="/"))
-sample.sheet.2 <- read.delim(paste(dir2, "SampleSheet2.txt", sep="/"))
+An abitrary number of directories can be used, put the paths in the
+`dataDirectoryz` vector. Here we use relative becuase it should be
+reproducible between users. You should use ABSOLUTE for your real
+work. Don't have this folder? Download it (look up).
 
-#Change names of samples to those specified in the sample sheets
-sampleNames(flowData.1) <- paste(sample.sheet.1[,1], sample.sheet.1[,2], sample.sheet.1[,3], sample.sheet.1[,4], sample.sheet.1[,5], sample.sheet.1[,6], sep=" ")
-sampleNames(flowData.2) <- paste(sample.sheet.2[,1], sample.sheet.2[,2], sample.sheet.2[,3], sample.sheet.2[,4], sample.sheet.2[,5], sample.sheet.2[,6], sep=" ")
+
+```{r readingFCSandSampleSheet, cache=F}
+dataDirectoryz <- c("exampleDataset1")
+
+for (dataDirectory in dataDirectoryz) {
+
+  print(paste("Reading",dataDirectory))
+
+  tmpSampleSheet <- read.delim(
+    paste0(dataDirectory,"/SampleSheet.txt"),row.names=1)
+
+  tmpFlowSet <- read.flowSet(path=dataDirectory,pattern=".fcs",
+    alter.names=TRUE, #why?
+    phenoData=new("AnnotatedDataFrame",data=tmpSampleSheet)) 
+
+  if (exists("oneBigFlowSet")) {
+    oneBigFlowSet <- rbind2(oneBigFlowSet,tmpFlowSet)
+  } else {
+    oneBigFlowSet <- tmpFlowSet
+  }
+}
+print("Counted this many events:")
+print(fsApply(oneBigFlowSet,nrow))
+print("other statz?")
+print(fsApply(oneBigFlowSet,each_col,median))
 ```
 
+Now you have `oneBigFlowSet`. Great.
 
-```{r flowSet summaries}
-#Check how many cells were counted in each fcs file
-fsApply(flowData.1, each_col, length)[1:6]
-fsApply(flowData.2, each_col, length)[1:6]
 
-total.1 <- fsApply(flowData.1, each_col, length)[1:6]  #total counts per sample
-total.2 <- fsApply(flowData.1, each_col, length)[1:6] #total counts per sample
+#Step 3: gate
 
-#Print the medians of data values for each measurement
-fsApply(flowData.1, each_col, median)
-fsApply(flowData.2, each_col, median)
 
-#combine all flowSets into a single flowset
-flowData <- rbind2(flowData.1, flowData.2)
-total <- fsApply(flowData, each_col, length)[1:12] #total number of measurements per sample
-fsApply(flowData, each_col, median)
-samples.num <- length(flowData)
 
-```
-
-#Step 3: apply filters to data and generate plots showing the effect on filtering
 ```{r Application of Gates}
 ##Subset the data by applying sequential gates##
 
