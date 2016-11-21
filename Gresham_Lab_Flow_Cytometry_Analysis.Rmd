@@ -15,6 +15,8 @@ output:
 
 Write a detailed description of your experiment here including the goal of the analysis and your interpretation of the results.   
 If you still see this text it means that you have not described the experiment and whatever follows is meaningless.
+Life is meaningless - but properly documented experiments have context.
+
 ###############################
 
 > This code is designed for use with the Accuri flow cytometer, which is equiped with the following lasers and filters
@@ -27,7 +29,7 @@ If you still see this text it means that you have not described the experiment a
   + FL2 filter = 610/20nm   mCherry, dtomato
   + FL4 filter = 586/15nm   DsRed
   
-  
+[You should be familiar with your flow cytometer](https://gencore.bio.nyu.edu/shared-equipment/flow-cytometry/)  
 
 **Requirements**  
 In order to run this code you need:  
@@ -49,21 +51,7 @@ This script generates a summary of results followed by quality control plots.
 ```{r Libraries, eval=TRUE}
 # This is a function that just makes sure you have a package, or installs it for you without prompting
 
-requireInstall <- function(packageName,isBioconductor=F) {
-  if ( !try(require(packageName,character.only=T)) ) {
-    print(paste0("You don't have ",packageName," accessible, ",
-      "I'm gonna install it"))
-    if (isBioconductor) {
-      source("http://bioconductor.org/biocLite.R")                        
-      biocLite(packageName)                                                 
-    } else {
-      install.packages("packageName", repos = "http://cran.us.r-project.org")
-    }
-  }
-  return(1)
-}
-
-#Load libraries
+source("src/requireInstall.R")
 requireInstall("flowCore",isBioconductor=T)
 requireInstall("flowViz",isBioconductor=T)
 requireInstall("flowStats")
