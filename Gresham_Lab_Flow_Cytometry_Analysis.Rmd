@@ -57,7 +57,7 @@ requireInstall("flowStats")
 requireInstall("Hmisc")
 requireInstall("reshape2")
 requireInstall("ggplot2")
-requireInstall("flowWorkspace")
+#requireInstall("flowWorkspace")
 requireInstall("ggcyto", isBioconductor=T)
 requireInstall("gridExtra")
 ```
