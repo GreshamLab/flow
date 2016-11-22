@@ -166,6 +166,8 @@ how they look?
 ```{r gateCheck, cache=F}
 for (gateName in names(gatez)) {
   print(gateName)
+  subdatar <- fc2df(Subset(oneBigFlowSet,gatez[[gateName]]))
+  head(subdatar)
 }
 ```
 Subset the data by applying sequential gates
