@@ -212,43 +212,32 @@ for (gateName in c("singlet","cells")) {
 }
 ```
 
-#Step 4: Data analysis
+here we unpack the `flowSet` object into a sensible `data.frame`.
 
-##diagnostic values can be defined for plotting purposes
-```{r Definition of diagnostic values}
-#define critical values that can superimposed on plots for easy visual comparison
-
-gfp.bg <- 3.9  #a background value for GFP
-gfp.wt <- 5.9 #a value for wildtype GFP expression
-red.bg <- 3.03 #a background value for the red channel
-red.wt <- 3.75 #a value for wildtype Red expression
-haploid.fsc <- 6e5 #an empirical value for forward scatter for haploids
-diploid.fsc <- 7e5 #an empirical value for forward scatter for diploids
-gfp.norm <- 0.935 #an empricial value for gfp expression normalized by forward scatter
-red.norm <- 0.57 #an empricial value for red expression normalized by forward scatter
-gfp.red.norm <- 1.5 #an empricial value for gfp expression normalized by red channel
+```{r unpack}
+for (gateName in setdiff(names(gatez),c("singlet","cells"))) {
+  ingate  <- Subset(filteredDatar,gatez[[gateName]])
+  pData(ingate)[gateName] <- T
+  outgate <- Subset(filteredDatar,!gatez[[gateName]])
+  pData(ingate)[gateName] <- F
+  filteredData <- flowSet(list(ingate,outgate))
+flowSet(list(ingate[1:length(ingate)]))
+}
 
 ```
 
-##Extract data from fcs files to generate statistics and boxplots
-```{r Data extraction and plotting}
-#record summary statistics for each sample in a matrix named summary.stats 
-summary.stats <- matrix(data = NA, nrow = length(filteredData), ncol = 18, dimnames = list(sampleNames(filteredData),c("FSC_median","FSC_mean", "FSC_sd","FL1_median", "FL1_mean","FL1_sd","normalizedGFP_median", "normalizedGFP_mean", "normalizedGFP_sd","FL2_median","FL2_mean","FL2_sd","normalizedRed_median","normalizedRed_mean", "normalizedRed_sd","GFPnormalizedByRed_median", "GFPnormalizedByRed_mean","GFPnormalizedByRed_sd")))
+#Step 4: Data analysis
 
-#use the sample containing the minimum number of points after filtering for doublets and debris to define the number of data points retained for all samples
-sample.size <- min(fsApply(filteredData, each_col, length))  
+```{r filteredSummarys}
+varCare <- c("FSC.A","SSC.A""FL1.A","FL2.A")
+fsApply(filteredDatar,each_col,mean)[,varCare]
+fsApply(filteredDatar,each_col,median)[,varCare]
+fsApply(filteredDatar,each_col,sd)[,varCare]
+```
 
-print(sample.size)
-
-comparison.FSC <- matrix(data = NA, nrow = sample.size, ncol = length(filteredData), byrow = FALSE,dimnames = NULL)
-comparison.FL1 <- matrix(data = NA, nrow = sample.size, ncol = length(filteredData), byrow = FALSE,dimnames = NULL)
-comparison.FL2 <- matrix(data = NA, nrow = sample.size, ncol = length(filteredData), byrow = FALSE,dimnames = NULL)
-comparison.FL1NormFsc <- matrix(data = NA, nrow = sample.size, ncol = length(filteredData), byrow = FALSE,dimnames = NULL)
-comparison.FL2NormFsc <- matrix(data = NA, nrow = sample.size, ncol = length(filteredData), byrow = FALSE,dimnames = NULL)
-comparison.FL1NormFL2 <- matrix(data = NA, nrow = sample.size, ncol = length(filteredData), byrow = FALSE,dimnames = NULL)
-
+```{r summaryPlotz}
+fdatar <- fc2df(filteredDatar)
 #for each sample plot a histogram of the normalized data, raw FSC and raw GFP per row
-par(mfrow=c(1,2), mar=c(5.1,2.1,2.1,2.1), oma=c(1.5,2,1,1))
 
 #extract data from flowFrames to plot histograms of values and record summary statistics
 for (i in 1:length(filteredData)){
