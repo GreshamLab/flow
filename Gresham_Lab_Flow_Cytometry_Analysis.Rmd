@@ -128,14 +128,21 @@ If you screw it up, delete the RData file of the gates.
 
 ```{r gating, cache=F}
 gateFilename <- paste0("gatesFor",digest::digest(datar),".RData")
-if (file.exists(gateFilename)) {
+if (file.exists(gateFilename) &&
+    readline(paste0("Do you want to load the old gate file (y) ",
+      "or define a new one (n)?"))=="y") {
   load(gateFilename)
 } else {
   source("src/gator.R")
   gatez <- list()
-  gatez[["singlet"]] <- gator2d(datar,ehx="FSC.A",why="FSC.H") 
-  gatez[["cells"]] <- gator2d(datar,ehx="FSC.A",why="SSC.A") 
-  gatez[["gfpPos"]] <- gator2d(datar,ehx="FSC.A",why="FL1.A") 
+  gatez[["singlet"]] <- gator2d(datar,ehx="FSC.A",why="FSC.H",
+    gateName="singlet") 
+  gatez[["cells"]] <- gator2d(datar,ehx="FSC.A",why="SSC.A", 
+    gateName="cells") 
+  gatez[["gfpPos"]] <- gator2d(datar,ehx="FSC.A",why="FL1.A",
+    gateName="gfpPositive") 
+  gatez[["gfpNeg"]] <- gator2d(datar,ehx="FSC.A",why="FL1.A", 
+    gateName="gfpDepressing") 
   save(file=gateFilename,list=c("gatez"))
 }
 ```
@@ -157,10 +164,9 @@ flowCore for this?
 how they look?
 
 ```{r gateCheck, cache=F}
-
-
-
-
+for (gateName in names(gatez)) {
+  print(gateName)
+}
 ```
 Subset the data by applying sequential gates
 
