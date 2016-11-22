@@ -71,15 +71,14 @@ Want to make your `SampleSheet.txt`? Use a GUI spreadsheet thingy,
 like excel or googledocs or localc or `edit()` in R.
 The format is:
 
-| FileName | Variable1 | Variable2 | ... |
+| FileName | Ploidy | Dye | ... |
 |:---|:---|:---|:---|
-|A01.fcs|Ploidy_1.5ploid|Dye_acridineOrange|...|
-|A02|Ploidy_2.5ploid|Dye_acridineOrange|...|
-|A03.fcs|Ploidy_1.5ploid|Dye_sytoselect|...|
+|A01.fcs|1.5ploid|acridineOrange|...|
+|A02|2.5ploid|acridineOrange|...|
+|A03.fcs|1.5ploid|sytoselect|...|
 
-Why `Variable1` etc? It's generalizable to more than just one 
-exerperiment, yet the key value relationship is preserved with the
-`key_value` format.
+Where the only mandatory variable name is `FileName`, then all
+the others are whatever you're using.
 
 An abitrary number of directories can be used, put the paths in the
 `dataDirectoryz` vector. Here we use relative becuase it should be
