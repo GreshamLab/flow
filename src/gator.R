@@ -1,4 +1,4 @@
- 
+
 gator2d <- function(datar,ehx,why,gateName="DEFAULT",events=1e5,logit=T) {
   sub <- datar[sample(1:nrow(datar),events),]
   if (logit) {
@@ -23,6 +23,6 @@ gator2d <- function(datar,ehx,why,gateName="DEFAULT",events=1e5,logit=T) {
       data.frame(x=gp$x,y=gp$y))
   }
   dev.off()
-  names(g) <- c(ehx,why)
+  colnames(g) <- c(ehx,why)
   return(polygonGate(filterId=paste0("",""),.gate=g))
 }

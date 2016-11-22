@@ -180,8 +180,18 @@ how they look?
 ```{r gateCheck, cache=F}
 for (gateName in names(gatez)) {
   print(gateName)
-  subdatar <- fc2df(Subset(oneBigFlowSet,gatez[[gateName]]))
-  head(subdatar)
+  ingate  <- fc2df(Subset(oneBigFlowSet,gatez[[gateName]]))
+  outgate <- fc2df(Subset(oneBigFlowSet,!gatez[[gateName]]))
+  print(
+    ggplot()+
+      facet_wrap(~name)+
+      aes_string(x=colnames(gatez[[gateName]]@boundaries)[1],
+                 y=colnames(gatez[[gateName]]@boundaries)[2])+
+      geom_point(data=ingate,col="red",size=0.2,alpha=0.5)+
+      geom_point(data=outgate,col="black",size=0.2,alpha=0.5)+
+      scale_y_log10()+
+      scale_x_log10()
+  )
 }
 ```
 Subset the data by applying sequential gates
