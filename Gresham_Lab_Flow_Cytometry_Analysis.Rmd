@@ -49,18 +49,17 @@ This script generates a summary of results followed by quality control plots.
 
 This is a function that just makes sure you have a package, or installs it for you without prompting
 
-# FIRST
-
-RStudio seems to have fucked up how they packaged `httpuv`, and didn't 
-test a non-gui install, like they should. I'm not alone in this 
-problem, 
+<!--
+RStudio seems to have fucked up how they packaged `httpuv`, and 
+didn't test a non-gui install, like they should. I'm not alone in 
+this problem online,  and `httpuv`
 doesn't install like an R package. I'm assuming they slip it into
 RStudio, and then build dependencies upon it that won't install
-unless you manually install it.
-So `flowWorkspace` won't load right.
+unless you manually install it. So `flowWorkspace` won't load right.
 
 You need to open up another session of R with `--no-init-file` and
 `--no-restore` and install the packages.
+-->
 
 ```{r Libraries, eval=TRUE}
 source("src/requireInstall.R")
@@ -74,6 +73,10 @@ requireInstall("flowStats",isBioconductor=T)
 requireInstall("flowWorkspace",isBioconductor=T)
 requireInstall("ggcyto", isBioconductor=T)
 ```
+<!--
+In the above chunk, we should specify the end packages and let them
+handle dependencies as it sees fit.
+-->
 
 #Step 2: Read in .fcs files
 
@@ -138,7 +141,8 @@ datar <- fc2df(oneBigFlowSet)
 
 #Step 3: gate
 
-If you screw it up, delete the RData file of the gates.
+If you screw it up, delete the RData file of the gates. Or just
+re-run and re-gate it by doing "n".
 
 ```{r gating, cache=F}
 gateFilename <- paste0("gatesFor",digest::digest(datar),".RData")
@@ -196,39 +200,16 @@ for (gateName in names(gatez)) {
 ```
 Subset the data by applying sequential gates
 
-```{r doubletGate}
-flowData.singlets <- Subset(flowData, pg.singlets) 
-fsApply(flowData.singlets, each_col, length)[1:samples.num]
-singlets <- fsApply(flowData.singlets, each_col, length)[1:samples.num]
-barplot(singlets/total, ylim=c(0,1), ylab = "Proportion singlet cells", las=2, cex.names = 0.5, names.arg=sampleNames(flowData))
-
-#apply debris gate
-filteredData <- Subset(flowData.singlets, pg.nondebris) 
-fsApply(filteredData, each_col, length)[1:samples.num]
-non.debris <- fsApply(filteredData, each_col, length)[1:samples.num]
-barplot(non.debris/total, ylim=c(0,1), ylab = "Proportion singlet and nondebris cells", las=2, cex.names = 0.5, names.arg=sampleNames(flowData))
-
-#########
-#filteredData is the variable name for the data filtered of doublets and debris that are used for all subsequent analyses
-##########
-
-#this gate defines nongfp cells
-gfp.neg <- Subset(filteredData, pg.nongfp) 
-fsApply(gfp.neg, each_col, length)[1:samples.num]
-non.gfp <- fsApply(gfp.neg, each_col, length)[1:samples.num]
-barplot(non.gfp/non.debris, ylim=c(0,1), ylab = "Proportion cells with no GFP", las=2, cex.names = 0.5, names.arg=sampleNames(flowData))
-
-#this gate defines gfp cells
-gfp.pos <- Subset(filteredData, pg.gfp) 
-fsApply(gfp.pos, each_col, length)[1:samples.num]
-gfp.cells <- fsApply(gfp.pos, each_col, length)[1:samples.num]
-barplot(gfp.cells/non.debris, ylim=c(0,1), ylab = "Proportion cells with GFP", las=2, cex.names = 0.5, names.arg=sampleNames(flowData))
-
-#this gate defines high GFP cells
-gfp.hi <- Subset(filteredData, pg.hi.gfp) 
-fsApply(gfp.hi, each_col, length)[1:samples.num]
-hi.gfp.cells <- fsApply(gfp.hi, each_col, length)[1:samples.num]
-barplot(hi.gfp.cells/non.debris, ylim=c(0,1), ylab = "Proportion cells with high GFP", las=2, cex.names = 0.5, names.arg=sampleNames(flowData))
+```{r gateApply}
+rm(filteredDatar)
+for (gateName in c("singlet","cells")) {
+  print(gateName)
+  if (exists("filteredDatar")) {
+    filteredDatar  <- Subset(filteredDatar,gatez[[gateName]])
+  } else {
+    filteredDatar  <- Subset(oneBigFlowSet,gatez[[gateName]])
+  }
+}
 ```
 
 #Step 4: Data analysis
