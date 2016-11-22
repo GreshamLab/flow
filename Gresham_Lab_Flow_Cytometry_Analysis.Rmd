@@ -53,13 +53,13 @@ This is a function that just makes sure you have a package, or installs it for y
 source("src/requireInstall.R")
 requireInstall("flowCore",isBioconductor=T)
 requireInstall("flowViz",isBioconductor=T)
-requireInstall("flowStats")
+#requireInstall("flowStats")
 requireInstall("Hmisc")
 requireInstall("reshape2")
 requireInstall("ggplot2")
 #requireInstall("flowWorkspace")
-requireInstall("ggcyto", isBioconductor=T)
 requireInstall("gridExtra")
+requireInstall("ggcyto", isBioconductor=T)
 ```
 
 #Step 2: Read in .fcs files
@@ -140,14 +140,28 @@ if (file.exists(gateFilename)) {
 }
 ```
 
+<!--
+This also needs an implementation for 1D. I'm thinking that you just
+call `gator` function, then you give it a vector of one or two
+dimensions you want to gate on. Then you give it a vector of one or
+two dimensions to plot. It builds the plot, then the current 
+implementation would be if you give it two and two. If you give it
+one and one, then it's gating on a histogram with locate(1).
+If it's two plot and one gate, then it's a one sided gate on a 2d
+scatter. Would be cool.
+
+Would be nice to also have a quadrant gate. Are there functions in
+flowCore for this?
+-->
+
 how they look?
 
 ```{r gateCheck, cache=F}
 
+
+
+
 ```
-
-
-
 Subset the data by applying sequential gates
 
 ```{r doubletGate}
