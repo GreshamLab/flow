@@ -49,16 +49,29 @@ This script generates a summary of results followed by quality control plots.
 
 This is a function that just makes sure you have a package, or installs it for you without prompting
 
+# FIRST
+
+RStudio seems to have fucked up how they packaged `httpuv`, and didn't 
+test a non-gui install, like they should. I'm not alone in this 
+problem, 
+doesn't install like an R package. I'm assuming they slip it into
+RStudio, and then build dependencies upon it that won't install
+unless you manually install it.
+So `flowWorkspace` won't load right.
+
+You need to open up another session of R with `--no-init-file` and
+`--no-restore` and install the packages.
+
 ```{r Libraries, eval=TRUE}
 source("src/requireInstall.R")
-requireInstall("flowCore",isBioconductor=T)
-requireInstall("flowViz",isBioconductor=T)
-#requireInstall("flowStats")
-requireInstall("Hmisc")
 requireInstall("reshape2")
 requireInstall("ggplot2")
-#requireInstall("flowWorkspace")
+requireInstall("flowCore",isBioconductor=T)
+requireInstall("flowViz",isBioconductor=T)
+requireInstall("Hmisc",isBioconductor=T)
 requireInstall("gridExtra")
+requireInstall("flowStats",isBioconductor=T)
+requireInstall("flowWorkspace",isBioconductor=T)
 requireInstall("ggcyto", isBioconductor=T)
 ```
 
@@ -89,6 +102,7 @@ work. Don't have this folder? Download it (look up).
 ```{r readingFCSandSampleSheet, cache=F}
 dataDirectoryz <- c("exampleFlowDataset1")
 
+rm(oneBigFlowSet)
 for (dataDirectory in dataDirectoryz) {
 
   print(paste("Reading",dataDirectory))
@@ -106,6 +120,7 @@ for (dataDirectory in dataDirectoryz) {
     oneBigFlowSet <- tmpFlowSet
   }
 }
+pData(oneBigFlowSet)
 print("Counted this many events:")
 print(fsApply(oneBigFlowSet,nrow))
 print("other statz?")
