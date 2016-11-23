@@ -145,34 +145,37 @@ a data.frame:
 ```{r}
 source("src/fs2df.R")
 datar <- fs2df(oneBigFlowSet)
+save(file=paste0("flowSet",digest::digest(oneBigFlowSet),".RData"))
 ```
 
 
 #Step 3: gate
 
-If you screw it up, delete the RData file of the gates. Or just
-re-run and re-gate it by doing "n".
+So I can't actually figure out how to make rmarkdown play with
+interactive chunks. So you should see an error right about....
 
-```{r gating, cache=F}
-gateFilename <- paste0("gatesFor",digest::digest(datar),".RData")
-if (file.exists(gateFilename) &&
-    readline(paste0("Do you want to load the old gate file (y) ",
-      "or define a new one (n)?"))=="y") {
-  load(gateFilename)
-} else {
-  source("src/gator.R")
-  gatez <- list()
-  gatez[["singlet"]] <- gator2d(datar,ehx="FSC.A",why="FSC.H",
-    gateName="singlet") 
-  gatez[["cells"]] <- gator2d(datar,ehx="FSC.A",why="SSC.A", 
-    gateName="cells") 
-  gatez[["gfpPos"]] <- gator2d(datar,ehx="FSC.A",why="FL1.A",
-    gateName="gfpPositive") 
-  gatez[["gfpNeg"]] <- gator2d(datar,ehx="FSC.A",why="FL1.A", 
-    gateName="gfpDepressing") 
-  save(file=gateFilename,list=c("gatez"))
-}
+```{r gateLoad, cache=F}
+gateFilename <- paste0("gatesFor",digest::digest(oneBigFlowSet),".RData")
+load(gateFilename)
 ```
+
+Okay, so now go to your terminal and run this:
+
+```{r gating, cache=F,eval=F}
+source("src/gator.R")
+gatez <- list()
+gatez[["singlet"]] <- gator2d(datar,ehx="FSC.A",why="FSC.H",
+  gateName="singlet") 
+gatez[["cells"]] <- gator2d(datar,ehx="FSC.A",why="SSC.A", 
+  gateName="cells") 
+gatez[["gfpPos"]] <- gator2d(datar,ehx="FSC.A",why="FL1.A",
+  gateName="gfpPositive") 
+gatez[["gfpNeg"]] <- gator2d(datar,ehx="FSC.A",why="FL1.A", 
+  gateName="gfpDepressing") 
+save(file=gateFilename,list=c("gatez"))
+```
+
+If you screw it up, delete the RData file of the gates, and re-run.
 
 <!--
 This also needs an implementation for 1D. I'm thinking that you just
@@ -389,49 +392,33 @@ dataLGCLTransform <- transform(gatedFilteredDatar,'FSC.A' = lgcl(`FSC.A`), 'SSC.
 
 Effect of time
 
-
+> "Study the past if you would define the future."
+>
+>  - Confucious
 
 ```{r}
-#The effect of time on signal (of which there shouldn't be any)
-i <- 1
-xyplot(FL1.A ~ Time, data=dataLGCLTransform[i], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(150,250), main = sampleNames(filteredData)[i])
-i <- 2
-xyplot(FL1.A ~ Time, data=dataLGCLTransform[i], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(150,250), main = sampleNames(filteredData)[i])
-i <- 3
-xyplot(FL1.A ~ Time, data=dataLGCLTransform[i], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(150,250), main = sampleNames(filteredData)[i])
-####Attempted as loop and will not work 
-for (i in 1:length(filteredData)){
-xyplot(FL1.A ~ Time, data=dataLGCLTransform[i], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(150,250), main = sampleNames(filteredData)[i])
-}
+ggplot(gfdatar)+
+  aes(x=Time,y=FL1.A,col=factor(ul500nMDye))+
+  geom_point(size=0.2,alpha=0.5)+
+  stat_smooth()+scale_y_log10()
 ```
 
-##Plots of FL1 versus FSC
+Two more plots
+
 ```{r}
-i <- 1
-xyplot(FL1.A ~ FSC.A, data=dataLGCLTransform[i], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(4,8), sampleNames(filteredData)[i])
-i <- 2
-xyplot(FL1.A ~ FSC.A, data=dataLGCLTransform[i], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(4,8), sampleNames(filteredData)[i])
-i <- 3
-xyplot(FL1.A ~ FSC.A, data=dataLGCLTransform[i], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(4,8), sampleNames(filteredData)[i])
-####Attempted as loop and will not work 
-for (i in 1:length(filteredData)){
-xyplot(FL1.A ~ FSC.A, data=dataLGCLTransform[i], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(4,8), ylim=c(2,6), sampleNames(filteredData)[i])
-}
+ggplot(gfdatar[sample(1:nrow(gfdatar)),])+
+  aes(x=FSC.A,y=FL1.A,col=factor(ul500nMDye))+
+  geom_point(size=0.2,alpha=0.5)+
+  scale_y_log10()+scale_x_log10()
 ```
 
-##Plots of FSC versus SSC
 ```{r}
-i <- 1
-xyplot(SSC.A ~ FSC.A, data=dataLGCLTransform[i], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(4,8), ylim=c(4,8), sampleNames(filteredData)[i])
-i <- 2
-xyplot(SSC.A ~ FSC.A, data=dataLGCLTransform[i], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(4,8), ylim=c(4,8), sampleNames(filteredData)[i])
-i <- 3
-xyplot(SSC.A ~ FSC.A, data=dataLGCLTransform[i], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(4,8), ylim=c(4,8), sampleNames(filteredData)[i])
-####Attempted as loop and will not work 
-for (i in 1:length(filteredData)){
-xyplot(SSC.A ~ FSC.A, data=dataLGCLTransform[i], smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(4,8), ylim=c(4,8), sampleNames(filteredData)[i])
-}
+ggplot(gfdatar[sample(1:nrow(gfdatar)),])+
+  aes(x=FSC.A,y=SSC.A,col=factor(ul500nMDye))+
+  geom_point(size=0.2,alpha=0.5)+
+  scale_y_log10()+scale_x_log10()
 ```
+
 
 
 
