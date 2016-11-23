@@ -17,6 +17,11 @@ Write a detailed description of your experiment here including the goal of the a
 If you still see this text it means that you have not described the experiment and whatever follows is meaningless.
 Life is meaningless - but properly documented experiments have context.
 
+For example, this example without context makes me wonder why we're
+looking for GFP fluoresence with a dye as the major source of 
+variation in the experimental design. Is there a GFP as a 
+transcription-and-translation reporter of dye content?
+
 ###############################
 
 > This code is designed for use with the Accuri flow cytometer, which is equiped with the following lasers and filters
@@ -226,19 +231,19 @@ for (gateName in c("singlet","cells")) {
 #gateCheck() call would go here
 ```
 
-```{r unpack}
-#source("src/combineFlowSets.R");tmp<-combineFlowSets(list(ingate,outgate))
-#for (gateName in setdiff(names(gatez),c("singlet","cells"))) {
-#  ingate  <- Subset(filteredDatar,gatez[[gateName]])
-#  pData(ingate)[gateName] <- T
-#  outgate <- Subset(filteredDatar,!gatez[[gateName]])
-#  pData(outgate)[gateName] <- F
-#  filteredData <- combineFlowSets(list(ingate,outgate))
-#}
+Buidling a better datastructure, for later use
 
+```{r unpack}
+source("src/splitFSbyGate.R")
+gatedFilteredDatar <- filteredDatar
+for (gateName in setdiff(names(gatez),c("singlet","cells"))) {
+  gatedFilteredDatar <- splitFSbyGate(gatedFilteredDatar,
+    gatez[[gateName]])
+}
+gfdatar <- fs2df(gatedFilteredDatar)
 ```
 
-#Step 4: Data analysis
+#Step 4: Plotz
 
 Into usable form:
 
