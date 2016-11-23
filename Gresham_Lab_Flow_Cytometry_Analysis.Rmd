@@ -182,17 +182,26 @@ flowCore for this?
 how they look?
 
 ```{r gateCheck, cache=F}
+#source("src/gateCheck.R")
+#gateCheck()
+#make a function so we can re-call it after starting to apply these
+
 for (gateName in names(gatez)) {
   print(gateName)
-  ingate  <- fc2df(Subset(oneBigFlowSet,gatez[[gateName]]))
-  outgate <- fc2df(Subset(oneBigFlowSet,!gatez[[gateName]]))
+  ingate  <- data.frame(
+    fc2df(Subset(oneBigFlowSet,gatez[[gateName]])),thisGate=T)
+  outgate <- data.frame(
+    fc2df(Subset(oneBigFlowSet,!gatez[[gateName]])),thisGate=F)
+  shuffle <- rbind(ingate,outgate)
+  shuffle <- shuffle[sample(1:nrow(shuffle)),]
+  names(shuffle)[which(names(shuffle)=="thisGate")] <- gateName
   print(
-    ggplot()+
+    ggplot(shuffle)+
       facet_wrap(~name)+
       aes_string(x=colnames(gatez[[gateName]]@boundaries)[1],
-                 y=colnames(gatez[[gateName]]@boundaries)[2])+
-      geom_point(data=ingate,col="red",size=0.2,alpha=0.5)+
-      geom_point(data=outgate,col="black",size=0.2,alpha=0.5)+
+                 y=colnames(gatez[[gateName]]@boundaries)[2],
+                 col=gateName)+
+      geom_point(size=0.2,alpha=0.5)+
       scale_y_log10()+
       scale_x_log10()
   )
@@ -210,18 +219,17 @@ for (gateName in c("singlet","cells")) {
     filteredDatar  <- Subset(oneBigFlowSet,gatez[[gateName]])
   }
 }
+#gateCheck() call would go here
 ```
 
-here we unpack the `flowSet` object into a sensible `data.frame`.
-
 ```{r unpack}
+source("src/combineFlowSets.R");tmp<-combineFlowSets(list(ingate,outgate))
 for (gateName in setdiff(names(gatez),c("singlet","cells"))) {
   ingate  <- Subset(filteredDatar,gatez[[gateName]])
   pData(ingate)[gateName] <- T
   outgate <- Subset(filteredDatar,!gatez[[gateName]])
-  pData(ingate)[gateName] <- F
-  filteredData <- flowSet(list(ingate,outgate))
-flowSet(list(ingate[1:length(ingate)]))
+  pData(outgate)[gateName] <- F
+  filteredData <- combineFlowSets(list(ingate,outgate))
 }
 
 ```
