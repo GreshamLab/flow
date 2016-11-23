@@ -117,6 +117,10 @@ for (dataDirectory in dataDirectoryz) {
     alter.names=TRUE, #why?
     phenoData=new("AnnotatedDataFrame",data=tmpSampleSheet)) 
 
+  sampleNames(tmpFlowSet) <- paste0(dataDirectory,"/",
+    sampleNames(tmpFlowSet))
+  pData(tmpFlowSet)$name <- sampleNames(tmpFlowSet)
+
   if (exists("oneBigFlowSet")) {
     oneBigFlowSet <- rbind2(oneBigFlowSet,tmpFlowSet)
   } else {
@@ -242,7 +246,7 @@ Into usable form:
 fdatar <- fs2df(filteredDatar)
 head(fdatar)
 mfdatar <- melt(fdatar,
-  id.vars=c("Strain","Dye","Ploidy","Media","name"),
+  id.vars=c("Strain","ul500nMDye","Ploidy","Media","name"),
   measure.vars=c("FSC.A","FSC.H","FL1.A","FL1.H"))
 head(mfdatar)
 ```
@@ -250,10 +254,8 @@ head(mfdatar)
 - summary statistics
 
 ```{r filteredSummarys}
-varCare <- c("FSC.A","SSC.A""FL1.A","FL2.A")
-fsApply(filteredDatar,each_col,mean)[,varCare]
-fsApply(filteredDatar,each_col,median)[,varCare]
-fsApply(filteredDatar,each_col,sd)[,varCare]
+sumz <- fsApply(filteredDatar,function(x){
+  data.frame(t(each_col(x,summary)))})
 ```
 
 - for each sample plot a histogram of the normalized data, raw FSC and raw GFP per row
@@ -299,36 +301,40 @@ ggplot(subset(fdatar))+
 
 ggplot(subset(mfdatar,variable%in%c("FSC.A","FL1.A","FL2.A")))+
   aes(x=name,y=(value))+facet_grid(~variable,scales="free")+
-  geom_violin()+scale_y_log10()
+  geom_violin()+scale_y_log10()+
+  theme(axis.text.x=element_text(angle=90))
 
 ggplot(subset(mfdatar,variable%in%c("FSC.A","FL1.A","FL2.A")))+
   aes(x=name,y=(value))+facet_grid(~variable,scales="free")+
-  geom_boxplot()+scale_y_log10()
+  geom_boxplot()+scale_y_log10()+
+  theme(axis.text.x=element_text(angle=90))
 
 ```
+
+Comparison of FL1.A to 0nM
 
 ```{r}
-fsApply(filteredDatar,function(x){data.frame(t(each_col(x,summary)))})
+aggregate(data=fdatar,FL1.A~ul500nMDye,FUN=median)
+medianFL1Anodye <- median(subset(fdatar,ul500nMDye==0)$FL1.A)
+ggplot(fdatar)+
+  aes(x=ul500nMDye,y=FL1.A/medianFL1Anodye,group=name)+
+  geom_boxplot()+scale_y_log10()+
+  theme(axis.text.x=element_text(angle=90))
 ```
 
+Comparison of FSC.A to 0nM
 
-##Quantitation of relative FL1 signal
 ```{r}
-baseline.FL1 <- summary.stats$FL1_median[1]
-
-barplot(summary.stats$FL1_median/baseline.FL1, ylab="Relative FL1 median expression", las=2, cex.names = 0.5, names.arg=sampleNames(filteredData))
-
+aggregate(data=fdatar,FSC.A~ul500nMDye,FUN=median)
+medianFSCAnodye <- median(subset(fdatar,ul500nMDye==0)$FSC.A)
+ggplot(fdatar)+
+  aes(x=ul500nMDye,y=FSC.A/medianFSCAnodye,group=name)+
+  geom_boxplot()+scale_y_log10()+
+  theme(axis.text.x=element_text(angle=90))
 ```
 
-##Quantitation of forward scatter
-```{r}
-baseline.FSC <- summary.stats$FSC_median[1]
+Population composition
 
-barplot(summary.stats$FSC_median/baseline.FSC, ylab="Relative median FSC", las=2, cex.names = 0.5, names.arg=sampleNames(filteredData))
-
-```
-
-##Population composition
 ```{r}
 pop.composition <- rbind(non.gfp/non.debris,gfp.cells/non.debris,hi.gfp.cells/non.debris)
 barplot(pop.composition, ylab="Proportion of population", legend=c("No GFP", "Normal GFP", "High GFP"),las=2, cex.names = 0.5,names.arg=sampleNames(filteredData))
