@@ -10,6 +10,18 @@ output:
     toc: yes
 ---
 
+> "I hear and I forget. I see and I remember. I copy this file and
+>   modify it and I have a reproducible record of my analyses."
+>
+>   - Confucious
+
+<!--
+> "The people may be made to follow a path of action, but they 
+>   may not be made to understand it."
+> 
+>   - Confucious
+-->
+
 
 **Experiment overview**
 
@@ -220,6 +232,10 @@ for (gateName in names(gatez)) {
 ```
 Subset the data by applying sequential gates
 
+> "When you have doublets, do not fear to abandon them."
+>
+>   - Confucious
+
 ```{r gateApply}
 rm(filteredDatar)
 for (gateName in c("singlet","cells")) {
@@ -253,7 +269,7 @@ Into usable form:
 head(gfdatar)
 mfdatar <- melt(gfdatar,
   id.vars=c("Strain","ul500nMDye","Ploidy","Media","name","gfpPos","gfpNeg"),
-  measure.vars=c("FSC.A","FSC.H","FL1.A","FL1.H"))
+  measure.vars=c("FSC.A","FSC.H","FL1.A","FL1.H","FL2.A","FL2.H"))
 head(mfdatar)
 ```
 
@@ -344,7 +360,7 @@ ggplot(gfdatar)+
 Population composition
 
 ```{r}
-digits(t(apply(
+t(apply(
   data.frame(
     aggregate(data=gfdatar,cbind(gfpPos,gfpNeg)~ul500nMDye,
       FUN=function(x){sum(x==T)}),
