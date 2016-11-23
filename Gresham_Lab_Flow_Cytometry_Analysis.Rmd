@@ -194,7 +194,6 @@ how they look?
 #source("src/gateCheck.R")
 #gateCheck()
 #make a function so we can re-call it after starting to apply these
-
 for (gateName in names(gatez)) {
   print(gateName)
   ingate  <- data.frame(
@@ -248,10 +247,9 @@ gfdatar <- fs2df(gatedFilteredDatar)
 Into usable form:
 
 ```{r summaryPlotz}
-fdatar <- fs2df(filteredDatar)
-head(fdatar)
-mfdatar <- melt(fdatar,
-  id.vars=c("Strain","ul500nMDye","Ploidy","Media","name"),
+head(gfdatar)
+mfdatar <- melt(gfdatar,
+  id.vars=c("Strain","ul500nMDye","Ploidy","Media","name","gfpPos","gfpNeg"),
   measure.vars=c("FSC.A","FSC.H","FL1.A","FL1.H"))
 head(mfdatar)
 ```
@@ -259,7 +257,9 @@ head(mfdatar)
 - summary statistics
 
 ```{r filteredSummarys}
-sumz <- fsApply(filteredDatar,function(x){
+fsApply(filteredDatar,function(x){
+  data.frame(t(each_col(x,summary)))})
+fsApply(gatedFilteredDatar,function(x){
   data.frame(t(each_col(x,summary)))})
 ```
 
@@ -286,19 +286,19 @@ ggplot(subset(mfdatar,variable%in%c("FL2.A","FL2.H")))+
   geom_histogram()+
   geom_vline(xintercept=4,col="cyan")
 
-ggplot(subset(fdatar))+
+ggplot(subset(gfdatar))+
   aes(x=log10(FL2.A/FSC.A))+
   facet_grid(name~.)+
   geom_histogram()+
   geom_vline(xintercept=0,col="cyan")
 
-ggplot(subset(fdatar))+
+ggplot(subset(gfdatar))+
   aes(x=log10(FL1.A/FL2.A))+
   facet_grid(name~.)+
   geom_histogram()+
   geom_vline(xintercept=0,col="cyan")
 
-ggplot(subset(fdatar))+
+ggplot(subset(gfdatar))+
   aes(x=log10(FSC.H/FL2.A))+
   facet_grid(name~.)+
   geom_histogram()+
@@ -319,9 +319,9 @@ ggplot(subset(mfdatar,variable%in%c("FSC.A","FL1.A","FL2.A")))+
 Comparison of FL1.A to 0nM
 
 ```{r}
-aggregate(data=fdatar,FL1.A~ul500nMDye,FUN=median)
-medianFL1Anodye <- median(subset(fdatar,ul500nMDye==0)$FL1.A)
-ggplot(fdatar)+
+aggregate(data=gfdatar,FL1.A~ul500nMDye,FUN=median)
+medianFL1Anodye <- median(subset(gfdatar,ul500nMDye==0)$FL1.A)
+ggplot(gfdatar)+
   aes(x=ul500nMDye,y=FL1.A/medianFL1Anodye,group=name)+
   geom_boxplot()+scale_y_log10()+
   theme(axis.text.x=element_text(angle=90))
@@ -330,9 +330,9 @@ ggplot(fdatar)+
 Comparison of FSC.A to 0nM
 
 ```{r}
-aggregate(data=fdatar,FSC.A~ul500nMDye,FUN=median)
-medianFSCAnodye <- median(subset(fdatar,ul500nMDye==0)$FSC.A)
-ggplot(fdatar)+
+aggregate(data=gfdatar,FSC.A~ul500nMDye,FUN=median)
+medianFSCAnodye <- median(subset(gfdatar,ul500nMDye==0)$FSC.A)
+ggplot(gfdatar)+
   aes(x=ul500nMDye,y=FSC.A/medianFSCAnodye,group=name)+
   geom_boxplot()+scale_y_log10()+
   theme(axis.text.x=element_text(angle=90))
@@ -341,87 +341,56 @@ ggplot(fdatar)+
 Population composition
 
 ```{r}
-pop.composition <- rbind(non.gfp/non.debris,gfp.cells/non.debris,hi.gfp.cells/non.debris)
-barplot(pop.composition, ylab="Proportion of population", legend=c("No GFP", "Normal GFP", "High GFP"),las=2, cex.names = 0.5,names.arg=sampleNames(filteredData))
-
+digits(t(apply(
+  data.frame(
+    aggregate(data=gfdatar,cbind(gfpPos,gfpNeg)~ul500nMDye,
+      FUN=function(x){sum(x==T)}),
+    aggregate(data=gfdatar,name~ul500nMDye,FUN=length)
+   ),1,function(x){return(c(x[1],x[2:3]/x[5]))}))
 ```
 
-#Step 5: Quality control
+Step 5: Quality control
 
-##Gates
+> “Great Scientist calculates in terms of the Control of the Quality
+>   of the Apparatus, not in terms of earning a living. Agriculture 
+>   is inspired by the fear of hunger; study, by an interest in 
+>   salary. Great Scientist is concerned about the Apparatus; 
+>   not about poverty. Yet.” 
+>
+>   - Confucious
+
+Scroll up to see how the gates did. Below is an example of `ggplot()`.
+
 ```{r}
-###First flowset
-#Singlets gate
-xyplot(FSC.A~FSC.H, data=flowData.1, xlim=c(0,3e6), ylim=c(0,3e6), filter=pg.singlets,  smooth=F, xbin=1024, stat=T, pos=0.5, abs=T, main = "First flowset - singlets gate")
-
-#Debris gate
-xyplot(SSC.A ~ FSC.A, data=flowData.1, displayFilter=TRUE, xlim=c(0,3e6), ylim=c(0,3e5), filter=pg.nondebris, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T,  main = "First flowset - nondebris gate")
-
-#Non-fluorescent population gate
-xyplot(FL1.A~FSC.A,data=flowData.1, displayFilter=TRUE, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.nongfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T,  main = "First flowset - non GFP gate")
-
-#Fluorescent population gate
-xyplot(FL1.A~FSC.A,data=flowData.1, displayFilter=TRUE, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.gfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T, main = "First flowset - GFP gate")
-
-#High fluorescing gate
-xyplot(FL1.A~FSC.A,data=flowData.1, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.hi.gfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T,  main = "First flowset - high GFP gate")
-
-################
-###Second flowset
-#Singlets gate
-xyplot(FSC.A~FSC.H, data=flowData.2, xlim=c(0,3e6), ylim=c(0,3e6), filter=pg.singlets,  smooth=F, xbin=1024, stat=T, pos=0.5, abs=T, main = "Second flowset - singlets gate")
-
-#Debris gate
-xyplot(SSC.A ~ FSC.A, data=flowData.2, displayFilter=TRUE, xlim=c(0,3e6), ylim=c(0,3e5), filter=pg.nondebris, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T,  main = "Second flowset  - nondebris gate")
-
-#Non-fluorescent population gate
-xyplot(FL1.A~FSC.A,data=flowData.2, displayFilter=TRUE, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.nongfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T,  main = "Second flowset - non GFP gate")
-
-#Fluorescent population gate
-xyplot(FL1.A~FSC.A,data=flowData.2, displayFilter=TRUE, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.gfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T, main = "Second flowset - GFP gate")
-
-#High fluorescing gate 
-xyplot(FL1.A~FSC.A,data=flowData.2, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.hi.gfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T,  main = "Second flowset - high GFP gate")
-
-
-#####Attempted as loop below to plot each one individually and is not working
-
-for (i in 1:length(filteredData)){
-
-#Singlets gate
-xyplot(FSC.A~FSC.H, data=flowData[i], xlim=c(0,3e6), ylim=c(0,3e6), filter=pg.singlets,  smooth=F, xbin=1024, stat=T, pos=0.5, abs=T, main = sampleNames(flowData)[i])
-
-#Debris gate
-xyplot(SSC.A ~ FSC.A, data=flowData[i], displayFilter=TRUE, xlim=c(0,3e5), ylim=c(0,3e6), filter=pg.nondebris, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T, main = sampleNames(flowData)[i])
-
-#Non-fluorescent population gate
-xyplot(FL1.A~FSC.A,data=flowData[i], displayFilter=TRUE, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.nongfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T, main = sampleNames(flowData)[i])
-
-#Fluorescent population gate
-xyplot(FL1.A~FSC.A,data=flowData[i], displayFilter=TRUE, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.gfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T, main = sampleNames(flowData)[i])
-
-#High fluorescing gate
-xyplot(FL1.A~FSC.A,data=flowData[i], xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.hi.gfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T, main = sampleNames(flowData)[i])
-
-}
+ggplot(gfdatar)+
+  facet_wrap(~ul500nMDye)+
+  aes(x=FSC.A,y=FL1.A,col=gfpNeg)+
+  geom_point(alpha=0.5,size=0.2)+
+  scale_y_log10()+scale_x_log10()
 ```
 
+Data transformation for visualization
 
-##Data transformation for visualization
+> “Data can make the Transformation great; 
+>   it isn’t Transformation which makes the Data great.”
+>
+>   - Confucious
+
+In order to look at QC plots the data is transformed using the logicle transform, which is a log transform for high values that transitions to a linear transformation near zero values.
+This is simply for visualization purposes.
+
+the parameters w,t, and m define the transformation parameters
+Below, dataset 1 tranformation applied to every channel except width and time.
+
 ```{r}
-#In order to look at QC plots the data is transformed using the logicle transform, which is a log transform for high values that transitions to a linear transformation near zero values 
-
-#This is simply for visualization purposes
-
-lgcl <- logicleTransform(w = 0.5, t= 10000, m=4.5) #the parameters w,t, and m define the transformation parameters
-
-#Dataset 1 tranformation applied to every channel except width and time
-dataLGCLTransform <- transform(filteredData,'FSC.A' = lgcl(`FSC.A`), 'SSC.A' =lgcl(`SSC.A`), 'FL1.A' = lgcl(`FL1.A`), 'FL2.A' = lgcl(`FL2.A`), 'FL3.A' = lgcl(`FL3.A`), 'FL4.A' = lgcl(`FL4.A`),'FSC.H' = lgcl(`FSC.H`),'SSC.H' = lgcl(`SSC.H`),'FL1.H' = lgcl(`FL1.H`),'FL2.H' = lgcl(`FL2.H`),'FL3.H' = lgcl(`FL3.H`),'FL4.H' = lgcl(`FL4.H`)) 
-
-
+lgcl <- logicleTransform(w = 0.5, t= 10000, m=4.5)
+dataLGCLTransform <- transform(gatedFilteredDatar,'FSC.A' = lgcl(`FSC.A`), 'SSC.A' =lgcl(`SSC.A`), 'FL1.A' = lgcl(`FL1.A`), 'FL2.A' = lgcl(`FL2.A`), 'FL3.A' = lgcl(`FL3.A`), 'FL4.A' = lgcl(`FL4.A`),'FSC.H' = lgcl(`FSC.H`),'SSC.H' = lgcl(`SSC.H`),'FL1.H' = lgcl(`FL1.H`),'FL2.H' = lgcl(`FL2.H`),'FL3.H' = lgcl(`FL3.H`),'FL4.H' = lgcl(`FL4.H`)) 
 ```
 
-##Effect of time
+Effect of time
+
+
+
 ```{r}
 #The effect of time on signal (of which there shouldn't be any)
 i <- 1
