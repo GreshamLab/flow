@@ -134,8 +134,8 @@ Now you have `oneBigFlowSet`. Great. For gating, we'll turn that into
 a data.frame:
 
 ```{r}
-source("src/fc2df.R")
-datar <- fc2df(oneBigFlowSet)
+source("src/fs2df.R")
+datar <- fs2df(oneBigFlowSet)
 ```
 
 
@@ -189,9 +189,9 @@ how they look?
 for (gateName in names(gatez)) {
   print(gateName)
   ingate  <- data.frame(
-    fc2df(Subset(oneBigFlowSet,gatez[[gateName]])),thisGate=T)
+    fs2df(Subset(oneBigFlowSet,gatez[[gateName]])),thisGate=T)
   outgate <- data.frame(
-    fc2df(Subset(oneBigFlowSet,!gatez[[gateName]])),thisGate=F)
+    fs2df(Subset(oneBigFlowSet,!gatez[[gateName]])),thisGate=F)
   shuffle <- rbind(ingate,outgate)
   shuffle <- shuffle[sample(1:nrow(shuffle)),]
   names(shuffle)[which(names(shuffle)=="thisGate")] <- gateName
@@ -223,18 +223,31 @@ for (gateName in c("singlet","cells")) {
 ```
 
 ```{r unpack}
-source("src/combineFlowSets.R");tmp<-combineFlowSets(list(ingate,outgate))
-for (gateName in setdiff(names(gatez),c("singlet","cells"))) {
-  ingate  <- Subset(filteredDatar,gatez[[gateName]])
-  pData(ingate)[gateName] <- T
-  outgate <- Subset(filteredDatar,!gatez[[gateName]])
-  pData(outgate)[gateName] <- F
-  filteredData <- combineFlowSets(list(ingate,outgate))
-}
+#source("src/combineFlowSets.R");tmp<-combineFlowSets(list(ingate,outgate))
+#for (gateName in setdiff(names(gatez),c("singlet","cells"))) {
+#  ingate  <- Subset(filteredDatar,gatez[[gateName]])
+#  pData(ingate)[gateName] <- T
+#  outgate <- Subset(filteredDatar,!gatez[[gateName]])
+#  pData(outgate)[gateName] <- F
+#  filteredData <- combineFlowSets(list(ingate,outgate))
+#}
 
 ```
 
 #Step 4: Data analysis
+
+Into usable form:
+
+```{r summaryPlotz}
+fdatar <- fs2df(filteredDatar)
+head(fdatar)
+mfdatar <- melt(fdatar,
+  id.vars=c("Strain","Dye","Ploidy","Media","name"),
+  measure.vars=c("FSC.A","FSC.H","FL1.A","FL1.H"))
+head(mfdatar)
+```
+
+- summary statistics
 
 ```{r filteredSummarys}
 varCare <- c("FSC.A","SSC.A""FL1.A","FL2.A")
@@ -243,153 +256,59 @@ fsApply(filteredDatar,each_col,median)[,varCare]
 fsApply(filteredDatar,each_col,sd)[,varCare]
 ```
 
-```{r summaryPlotz}
-fdatar <- fc2df(filteredDatar)
-#for each sample plot a histogram of the normalized data, raw FSC and raw GFP per row
+- for each sample plot a histogram of the normalized data, raw FSC and raw GFP per row
 
-#extract data from flowFrames to plot histograms of values and record summary statistics
-for (i in 1:length(filteredData)){
- 
-  temp <- exprs(filteredData[[i]]) #exprs() extracts a matrix of the values from the flowframe
- 
+```{r histoGramz}
+ggplot(mfdatar)+
+  facet_grid(name~variable,scales="free")+
+  aes(x=log10(value))+
+  geom_histogram(bins=50)
+```
 
-  ##########################################
-  #record summary statistics for the sample#
-  ##########################################
-  
-  #FSC
-  summary.stats[i,1] <- median(temp[,1]) 
-  summary.stats[i,2] <-mean(temp[,1])  
-  summary.stats[i,3] <- sd(temp[,1])
-  #FL1
-  summary.stats[i,4] <- median(temp[,3])
-  summary.stats[i,5] <-mean(temp[,3])  
-  summary.stats[i,6] <- sd(temp[,3])
-  #FL1 (GFP) divided by FSC
-  summary.stats[i,7] <- median(temp[,3]/temp[,1])
-  summary.stats[i,8] <-mean(temp[,3]/temp[,1])  
-  summary.stats[i,9] <- sd(temp[,3]/temp[,1])
-  #FL2
-  summary.stats[i,10] <- median(temp[,4])
-  summary.stats[i,11] <-mean(temp[,4])  
-  summary.stats[i,12] <- sd(temp[,4])
-  #FL2 (Red) divided by FSC
-  summary.stats[i,13] <- median(temp[,4]/temp[,1])
-  summary.stats[i,14] <-mean(temp[,4]/temp[,1])  
-  summary.stats[i,15] <- sd(temp[,4]/temp[,1])
-  #FL1 (GFP) divided by FL2 (Red)
-  summary.stats[i,16] <- median(temp[,3]/temp[,4])
-  summary.stats[i,17] <-mean(temp[,3]/temp[,4])  
-  summary.stats[i,18] <- sd(temp[,3]/temp[,4])  
-  
-  ##############################################
-  #plot histograms of the channels of interest##
-  ##############################################
+- extract data from flowFrames to plot histograms of values and record summary statistics
 
-  ###############
-  #Green channel#
-  ###############
-  
-  #FL1 (GFP)
-  hist(log10(temp[,3]), br=1000, xlab = "log10(FL1)", main = "FL1") 
-  abline(v=gfp.bg, col="yellow", lty=2, lwd=2)
-  abline(v=gfp.wt, col="green", lty=2, lwd=2) 
-  legend("topleft",  legend=paste("median FL1 = ",round(median(temp[,3]), digits=4),sep=""))
+```{r moreSummary}
+aggregate(data=mfdatar,value~variable+name,FUN=mean)
+aggregate(data=mfdatar,value~variable+name,FUN=median)
+```
 
-  #GFP divided by FSC
-  hist(temp[,3]/temp[,1], br=500, xlab = "FL1/FSC", main = "FL1/FSC") 
-  abline(v=gfp.norm, col="green", lty=2, lwd=2 )
-  legend("topleft",  legend=paste("median GFP / FSC=",round(median(temp[,3]/temp[,1]), digits=4),sep=""))
-  
-  mtext(sampleNames(filteredData[i]), outer = TRUE, cex = 1.0)
-  
-  ###############
-  #Red channel#
-  ###############
-  #FL2 (Red)
-  hist(log10(temp[,4]), br=500, xlab = "log10(FL2)", main = "FL2") 
-  abline(v=red.bg, col="yellow", lty=2, lwd=2)
-  abline(v=red.wt, col="red", lty=2, lwd=2) 
-  legend("topleft",  legend=paste("median FL2=",round(median(temp[,4]), digits=4),sep=""))
- 
-  #FL2 divided by FSC
-  hist(temp[,4]/temp[,1], br=500, xlab = "FL2/FSC", main = "FL2/FSC") 
-  abline(v=red.norm, col="red", lty=2, lwd=2 )
-  legend("topleft",  legend=paste("median FL2 / FSC=",round(median(temp[,4]/temp[,1]), digits=4),sep=""))
+Specific plotz
+```{r}
+ggplot(subset(mfdatar,variable%in%c("FL2.A","FL2.H")))+
+  aes(x=log10(value))+facet_grid(name~variable)+
+  geom_histogram()+
+  geom_vline(xintercept=4,col="cyan")
 
-  mtext(sampleNames(filteredData[i]), outer = TRUE, cex = 1.0)
-  
-  ###############
-  #Other#########
-  ###############
-  
-  #FL1 divided by FL2
-  hist(temp[,4]/temp[,3], br=500, xlab = "FL2/FL1", main = "FL1/FL2") 
-  abline(v=gfp.red.norm, col="purple", lty=2, lwd=2)
-  legend("topleft",  legend=paste("median FL1 / FL2=",round(median(temp[,4]/temp[,3]), digits=4),sep=""))
+ggplot(subset(fdatar))+
+  aes(x=log10(FL2.A/FSC.A))+
+  facet_grid(name~.)+
+  geom_histogram()+
+  geom_vline(xintercept=0,col="cyan")
 
-    #FSC
-  hist(log10(temp[,1]), br=500, xlab = "log10(FSC)", main = "FSC", xlim=c(4,8)) 
-  abline(v=haploid.fsc, col="blue", lty=2, lwd=2)
-  abline(v=diploid.fsc, col="grey", lty=2, lwd=2)
-  legend("topleft",  legend=paste("median FSC=",round(median(temp[,1]), digits=4),sep=""))
-  
-  mtext(sampleNames(filteredData[i]), outer = TRUE, cex = 1.0)
+ggplot(subset(fdatar))+
+  aes(x=log10(FL1.A/FL2.A))+
+  facet_grid(name~.)+
+  geom_histogram()+
+  geom_vline(xintercept=0,col="cyan")
 
-print("-------------------------------------------------------")
-print("-----------------------------------")
-print("----------------------")
+ggplot(subset(fdatar))+
+  aes(x=log10(FSC.H/FL2.A))+
+  facet_grid(name~.)+
+  geom_histogram()+
+  geom_vline(xintercept=0,col="cyan")
 
-  ############################################################
-  #keep the data set for generating boxplots comparing values#
-  ############################################################
-  
-  #Note that the amount of data kept for each sample is defined by the lowest count among all the samples.
-  comparison.FSC[1:sample.size,i] <- temp[1:sample.size,1] #FSC
-  comparison.FL1[1:sample.size,i] <- temp[1:sample.size,3] #FL1 (GFP)
-  comparison.FL1NormFsc[1:sample.size,i] <- temp[1:sample.size,3]/temp[1:sample.size,1] #GFP/FSC
-  comparison.FL2[1:sample.size,i] <- temp[1:sample.size,4] #FL2 
-  comparison.FL2NormFsc[1:sample.size,i] <- temp[1:sample.size,4]/temp[1:sample.size,1] #FL2/FSC
-  comparison.FL1NormFL2[1:sample.size,i] <- temp[1:sample.size,3]/temp[1:sample.size,4] #FL1/FL2
-  
-}
+ggplot(subset(mfdatar,variable%in%c("FSC.A","FL1.A","FL2.A")))+
+  aes(x=name,y=(value))+facet_grid(~variable,scales="free")+
+  geom_violin()+scale_y_log10()
 
-par(mfrow=c(1,1)) #change number of plots per row back to standard
+ggplot(subset(mfdatar,variable%in%c("FSC.A","FL1.A","FL2.A")))+
+  aes(x=name,y=(value))+facet_grid(~variable,scales="free")+
+  geom_boxplot()+scale_y_log10()
 
 ```
 
-
-##Overview of data distributions
-```{r Overall data distributions}
-par(mar=c(8.1,4.1,4.1,2.1)) #create more space at lower margin
-
-boxplot(comparison.FSC, names=sampleNames(filteredData), notch = TRUE, col = "gray", ylab="FSC", cex.axis=0.5,las=2, outline=F)
-abline(h=haploid.fsc, lty=2, col=2)
-abline(h=diploid.fsc, lty=2, col=3)
-
-boxplot(comparison.FL1, names=sampleNames(filteredData), notch = TRUE, col = "lightgreen", ylab="FL1", cex.axis=0.5,las=2, outline=F)
-abline(h=gfp.bg ,lty=2, lwd=3, col="yellow")
-abline(h=gfp.wt, lty = 2, lwd=3, col="green")
-
-boxplot(comparison.FL1NormFsc, names=sampleNames(filteredData), notch = TRUE, col = "green", ylab="FL1/FSC", cex.axis=0.5,las=2, outline=F)
-abline(h=gfp.norm, lty=2, lwd=3, col="blue")
-
-boxplot(comparison.FL2, names=sampleNames(filteredData), notch = TRUE, col = "pink", ylab="FL2", cex.axis=0.5,las=2, outline=F)
-abline(h=red.bg, lty=2, lwd=3, col="pink")
-abline(h=red.wt, lty=2, lwd=3, col="red")
-
-boxplot(comparison.FL2NormFsc, names=sampleNames(filteredData), notch = TRUE, col = "red", ylab="FL2/FSC", cex.axis=0.5,las=2, outline=F)
-abline(h=red.norm, lty=2, lwd=3, col="red")
-
-boxplot(comparison.FL1NormFL2, names=sampleNames(filteredData), notch = TRUE, col = "purple", ylab="FL1/FL2", cex.axis=0.5,las=2, outline=F)
-abline(h=gfp.red.norm, lty=2, lwd=3, col="purple")
-
-par(mar=c(5.1,4.1,4.1,2.1)) #reset margins to default
-
-#generate a summary table containing all the recorded statistics
-print(summary.stats)
-summary.stats <- as.data.frame(summary.stats)
-
+```{r}
+fsApply(filteredDatar,function(x){data.frame(t(each_col(x,summary)))})
 ```
 
 

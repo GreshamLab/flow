@@ -1,5 +1,5 @@
 
-fc2df <- function(x) {
+fs2df <- function(x) {
   for (i in sampleNames(x)) {
     if (nrow(exprs(x[[i]]))) {
       if (exists("returnDF")) {
