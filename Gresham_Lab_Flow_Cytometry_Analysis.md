@@ -283,6 +283,15 @@ print(fsApply(oneBigFlowSet,each_col,median))
 ## exampleFlowDataset1/A06.fcs    57  188
 ```
 
+```r
+save(file=paste0("flowSet",digest::digest(oneBigFlowSet),".RData"))
+```
+
+```
+## Warning in save(file = paste0("flowSet", digest::digest(oneBigFlowSet), :
+## nothing specified to be save()d
+```
+
 Now you have `oneBigFlowSet`. Great. For gating, we'll turn that into
 a data.frame:
 
@@ -290,12 +299,6 @@ a data.frame:
 ```r
 source("src/fs2df.R")
 datar <- fs2df(oneBigFlowSet)
-save(file=paste0("flowSet",digest::digest(oneBigFlowSet),".RData"))
-```
-
-```
-## Warning in save(file = paste0("flowSet", digest::digest(oneBigFlowSet), :
-## nothing specified to be save()d
 ```
 
 
@@ -396,6 +399,10 @@ for (gateName in names(gatez)) {
 
 ![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/gateCheck-4.png)<!-- -->
 Subset the data by applying sequential gates
+
+> "When you have doublets, do not fear to abandon them."
+>
+>   - Confucious
 
 
 ```r
@@ -498,6 +505,10 @@ head(mfdatar)
 ```
 
 - summary statistics
+
+Many of the `gatedFilteredDatar` things will be `NA`'s, that's ok.
+It's because there's not many members in those particular 
+gate/flowframes.
 
 
 ```r
@@ -1148,7 +1159,7 @@ ggplot(subset(mfdatar,variable%in%c("FL2.A","FL2.H")))+
 ## Warning: Removed 9253 rows containing non-finite values (stat_bin).
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-2-1.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/moreplotz-1.png)<!-- -->
 
 ```r
 ggplot(subset(gfdatar))+
@@ -1166,7 +1177,7 @@ ggplot(subset(gfdatar))+
 ## Warning: Removed 7698 rows containing non-finite values (stat_bin).
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-2-2.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/moreplotz-2.png)<!-- -->
 
 ```r
 ggplot(subset(gfdatar))+
@@ -1184,7 +1195,7 @@ ggplot(subset(gfdatar))+
 ## Warning: Removed 8819 rows containing non-finite values (stat_bin).
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-2-3.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/moreplotz-3.png)<!-- -->
 
 ```r
 ggplot(subset(gfdatar))+
@@ -1202,7 +1213,7 @@ ggplot(subset(gfdatar))+
 ## Warning: Removed 7698 rows containing non-finite values (stat_bin).
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-2-4.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/moreplotz-4.png)<!-- -->
 
 ```r
 ggplot(subset(mfdatar,variable%in%c("FSC.A","FL1.A","FL2.A")))+
@@ -1215,7 +1226,7 @@ ggplot(subset(mfdatar,variable%in%c("FSC.A","FL1.A","FL2.A")))+
 ## Warning: Removed 9038 rows containing non-finite values (stat_ydensity).
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-2-5.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/moreplotz-5.png)<!-- -->
 
 ```r
 ggplot(subset(mfdatar,variable%in%c("FSC.A","FL1.A","FL2.A")))+
@@ -1228,7 +1239,7 @@ ggplot(subset(mfdatar,variable%in%c("FSC.A","FL1.A","FL2.A")))+
 ## Warning: Removed 9038 rows containing non-finite values (stat_boxplot).
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-2-6.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/moreplotz-6.png)<!-- -->
 
 Comparison of FL1.A to 0nM
 
@@ -1259,7 +1270,7 @@ ggplot(gfdatar)+
 ## Warning: Removed 1340 rows containing non-finite values (stat_boxplot).
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/evenMoar-1.png)<!-- -->
 
 Comparison of FSC.A to 0nM
 
@@ -1286,7 +1297,7 @@ ggplot(gfdatar)+
   theme(axis.text.x=element_text(angle=90))
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/scatterChange-1.png)<!-- -->
 
 Population composition
 
@@ -1331,7 +1342,7 @@ ggplot(gfdatar)+
   scale_y_log10()+scale_x_log10()
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/anotherplot-1.png)<!-- -->
 
 Data transformation for visualization
 
@@ -1370,7 +1381,7 @@ ggplot(gfdatar)+
 ## Warning: Removed 1340 rows containing non-finite values (stat_smooth).
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/time-1.png)<!-- -->
 
 Two more plots
 
@@ -1382,8 +1393,7 @@ ggplot(gfdatar[sample(1:nrow(gfdatar)),])+
   scale_y_log10()+scale_x_log10()
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
-
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-1-1.png)<!-- -->
 
 ```r
 ggplot(gfdatar[sample(1:nrow(gfdatar)),])+
@@ -1392,7 +1402,7 @@ ggplot(gfdatar[sample(1:nrow(gfdatar)),])+
   scale_y_log10()+scale_x_log10()
 ```
 
-![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+![](Gresham_Lab_Flow_Cytometry_Analysis_files/figure-html/unnamed-chunk-1-2.png)<!-- -->
 
 
 

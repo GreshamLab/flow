@@ -119,7 +119,7 @@ reproducible between users. You should use ABSOLUTE for your real
 work. Don't have this folder? Download it (look up).
 
 
-```{r readingFCSandSampleSheet, cache=F}
+```{r readingFCSandSampleSheet, cache=T}
 dataDirectoryz <- c("exampleFlowDataset1")
 
 rm(oneBigFlowSet)
@@ -149,15 +149,15 @@ print("Counted this many events:")
 print(fsApply(oneBigFlowSet,nrow))
 print("other statz?")
 print(fsApply(oneBigFlowSet,each_col,median))
+save(file=paste0("flowSet",digest::digest(oneBigFlowSet),".RData"))
 ```
 
 Now you have `oneBigFlowSet`. Great. For gating, we'll turn that into
 a data.frame:
 
-```{r}
+```{r flowset2df}
 source("src/fs2df.R")
 datar <- fs2df(oneBigFlowSet)
-save(file=paste0("flowSet",digest::digest(oneBigFlowSet),".RData"))
 ```
 
 
@@ -205,7 +205,7 @@ flowCore for this?
 
 how they look?
 
-```{r gateCheck, cache=F}
+```{r gateCheck, cache=T}
 #source("src/gateCheck.R")
 #gateCheck()
 #make a function so we can re-call it after starting to apply these
@@ -265,7 +265,7 @@ gfdatar <- fs2df(gatedFilteredDatar)
 
 Into usable form:
 
-```{r summaryPlotz}
+```{r summaryPlotz,cache=T}
 head(gfdatar)
 mfdatar <- melt(gfdatar,
   id.vars=c("Strain","ul500nMDye","Ploidy","Media","name","gfpPos","gfpNeg"),
@@ -275,7 +275,11 @@ head(mfdatar)
 
 - summary statistics
 
-```{r filteredSummarys}
+Many of the `gatedFilteredDatar` things will be `NA`'s, that's ok.
+It's because there's not many members in those particular 
+gate/flowframes.
+
+```{r filteredSummarys,cache=T}
 fsApply(filteredDatar,function(x){
   data.frame(t(each_col(x,summary)))})
 fsApply(gatedFilteredDatar,function(x){
@@ -284,7 +288,7 @@ fsApply(gatedFilteredDatar,function(x){
 
 - for each sample plot a histogram of the normalized data, raw FSC and raw GFP per row
 
-```{r histoGramz}
+```{r histoGramz,cache=T}
 ggplot(mfdatar)+
   facet_grid(name~variable,scales="free")+
   aes(x=log10(value))+
@@ -293,13 +297,13 @@ ggplot(mfdatar)+
 
 - extract data from flowFrames to plot histograms of values and record summary statistics
 
-```{r moreSummary}
+```{r moreSummary,cache=T}
 aggregate(data=mfdatar,value~variable+name,FUN=mean)
 aggregate(data=mfdatar,value~variable+name,FUN=median)
 ```
 
 Specific plotz
-```{r}
+```{r moreplotz,cache=T}
 ggplot(subset(mfdatar,variable%in%c("FL2.A","FL2.H")))+
   aes(x=log10(value))+facet_grid(name~variable)+
   geom_histogram()+
@@ -337,7 +341,7 @@ ggplot(subset(mfdatar,variable%in%c("FSC.A","FL1.A","FL2.A")))+
 
 Comparison of FL1.A to 0nM
 
-```{r}
+```{r evenMoar,cache=T}
 aggregate(data=gfdatar,FL1.A~ul500nMDye,FUN=median)
 medianFL1Anodye <- median(subset(gfdatar,ul500nMDye==0)$FL1.A)
 ggplot(gfdatar)+
@@ -348,7 +352,7 @@ ggplot(gfdatar)+
 
 Comparison of FSC.A to 0nM
 
-```{r}
+```{r scatterChange,cache=T}
 aggregate(data=gfdatar,FSC.A~ul500nMDye,FUN=median)
 medianFSCAnodye <- median(subset(gfdatar,ul500nMDye==0)$FSC.A)
 ggplot(gfdatar)+
@@ -359,7 +363,7 @@ ggplot(gfdatar)+
 
 Population composition
 
-```{r}
+```{r aMess,cache=T}
 t(apply(
   data.frame(
     aggregate(data=gfdatar,cbind(gfpPos,gfpNeg)~ul500nMDye,
@@ -380,7 +384,7 @@ Step 5: Quality control
 
 Scroll up to see how the gates did. Below is an example of `ggplot()`.
 
-```{r}
+```{r anotherplot,cache=T}
 ggplot(gfdatar)+
   facet_wrap(~ul500nMDye)+
   aes(x=FSC.A,y=FL1.A,col=gfpNeg)+
@@ -401,7 +405,7 @@ This is simply for visualization purposes.
 the parameters w,t, and m define the transformation parameters
 Below, dataset 1 tranformation applied to every channel except width and time.
 
-```{r}
+```{r transformers,cache=T}
 lgcl <- logicleTransform(w = 0.5, t= 10000, m=4.5)
 dataLGCLTransform <- transform(gatedFilteredDatar,'FSC.A' = lgcl(`FSC.A`), 'SSC.A' =lgcl(`SSC.A`), 'FL1.A' = lgcl(`FL1.A`), 'FL2.A' = lgcl(`FL2.A`), 'FL3.A' = lgcl(`FL3.A`), 'FL4.A' = lgcl(`FL4.A`),'FSC.H' = lgcl(`FSC.H`),'SSC.H' = lgcl(`SSC.H`),'FL1.H' = lgcl(`FL1.H`),'FL2.H' = lgcl(`FL2.H`),'FL3.H' = lgcl(`FL3.H`),'FL4.H' = lgcl(`FL4.H`)) 
 ```
@@ -412,7 +416,7 @@ Effect of time
 >
 >  - Confucious
 
-```{r}
+```{r time,cache=T}
 ggplot(gfdatar)+
   aes(x=Time,y=FL1.A,col=factor(ul500nMDye))+
   geom_point(size=0.2,alpha=0.5)+
@@ -426,9 +430,7 @@ ggplot(gfdatar[sample(1:nrow(gfdatar)),])+
   aes(x=FSC.A,y=FL1.A,col=factor(ul500nMDye))+
   geom_point(size=0.2,alpha=0.5)+
   scale_y_log10()+scale_x_log10()
-```
 
-```{r}
 ggplot(gfdatar[sample(1:nrow(gfdatar)),])+
   aes(x=FSC.A,y=SSC.A,col=factor(ul500nMDye))+
   geom_point(size=0.2,alpha=0.5)+
