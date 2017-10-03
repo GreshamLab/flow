@@ -83,12 +83,22 @@ xyplot(FL1.A~FSC.A,data=flowData, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.nongfp
 ##############################
 #4. Generate Gate for fluorescencing cells
 plot(flowData[[2]], c('FSC.A','FL1.A'), xlim=c(0,5e6), ylim=c(0,5e4), smooth=F)
+
+#overlay gate for non-fluorescencing cells
+polygon(Cgate$x, Cgate$y, border='red')
+
+#draw gate for fluorescencing cells
 Dgate <- locator(10)
 gm.4 <- matrix(,10,2)
 colnames(gm.4) <- c('FSC.A','FL1.A')
 gm.4[,1] <- Dgate$x
 gm.4[,2] <- Dgate$y
 pg.gfp <- polygonGate(filterId="GFPpos",.gate=gm.4)
+
+#check the two gates together on the sample
+plot(flowData[[2]], c('FSC.A','FL1.A'), xlim=c(0,5e6), ylim=c(0,5e4), smooth=F)
+polygon(Cgate$x, Cgate$y, border='red')
+polygon(Dgate$x, Dgate$y, border='blue')
 
 #test that the fluorescing gate looks reasonable for the sample
 xyplot(FL1.A~FSC.A,data=flowData[[1]], xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.gfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T)
@@ -100,12 +110,24 @@ xyplot(FL1.A~FSC.A,data=flowData, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.gfp, s
 
 #5. Generate Gate for high fluorescencing cells
 plot(flowData[[6]], c('FSC.A','FL1.A'), xlim=c(0,5e6), ylim=c(0,5e4), smooth=F)
+
+#overlay gate for non-fluorescencing and low fluorecent cells
+polygon(Cgate$x, Cgate$y, border='red')
+polygon(Dgate$x, Dgate$y, border='blue')
+
+#draw gate for high fluorescencing cells
 Egate <- locator(10)
 gm.5 <- matrix(,10,2)
 colnames(gm.5) <- c('FSC.A','FL1.A')
 gm.5[,1] <- Egate$x
 gm.5[,2] <- Egate$y
 pg.hi.gfp <- polygonGate(filterId="hiGFPpos",.gate=gm.5)
+
+#check the all gates together on the sample
+plot(flowData[[6]], c('FSC.A','FL1.A'), xlim=c(0,5e6), ylim=c(0,5e4), smooth=F)
+polygon(Cgate$x, Cgate$y, border='red')
+polygon(Dgate$x, Dgate$y, border='blue')
+polygon(Egate$x, Egate$y, border='purple')
 
 #test that the high fluorescing gate looks reasonable for the sample
 xyplot(FL1.A~FSC.A,data=flowData[[6]], xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.hi.gfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T)
