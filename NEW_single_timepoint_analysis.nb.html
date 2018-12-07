@@ -180,17 +180,49 @@ $(document).ready(function () {
 
 
 <!-- rnb-text-begin -->
-<p>This notebook contains the code necessary to analysis flow cytometry data in the Gresham Lab. To analyze flow cytometry data, you MUST use the latest version of this code, available on the <a href="https://github.com/GreshamLab/flow">Gresham Lab github</a>.</p>
+<p>This notebook contains the code necessary to analysis flow cytometry data in the Gresham Lab.</p>
+<p>To analyze flow cytometry data, you MUST use the latest version of this code, available on the <a href="https://github.com/GreshamLab/flow">Gresham Lab github</a>.</p>
+<p><strong>Experimental overview</strong></p>
+<p>Write a detailed description of your experiment here including the goal of the analysis and your interpretation of the results.<br />
+If you still see this text it means that you have not described the experiment and whatever follows is meaningless.</p>
+<p><em>This code is designed for use with the Accuri flow cytometer, which is equiped with the following lasers and filters</em></p>
+<ul>
+<li>Blue laser (488 nm)</li>
+<li>FL1 filter = 514/20nm GFP</li>
+<li><p>FL3 filter = 575/25nm YFP</p></li>
+<li>Yellow/green laser (552 nm)</li>
+<li>FL2 filter = 610/20nm mCherry, dtomato</li>
+<li><p>FL4 filter = 586/15nm DsRed</p></li>
+</ul>
+<p><strong>Requirements</strong></p>
+<p>In order to run this code you need:</p>
+<ul>
+<li>to predefine your gates using the gating.R script</li>
+<li>the gates.Rdata workspace, which contains the gates to be used in this script</li>
+<li>a tab delimited sample sheet in with the first XXXX columns set up as in the example below</li>
+<li>user defined variables, see below and chunk 1</li>
+</ul>
+<p><strong>Output</strong><br />
+This script generates quality control plots in the notebook and a file(s) with a summary of results. The user can generate the output file(s) in three different styles:</p>
+<ol style="list-style-type: decimal">
+<li>As a dataframe converted from fcs with all or some of the data.</li>
+<li>As a dataframe with summary statistics (e.g. median FL1 per sample)</li>
+<li>As a new .fcs file with additional information (e.g. phenotype or sample information) appended</li>
+</ol>
+<p><strong>Variables</strong> Variables for the user to set can be found in chunk one. These include both required variables (e.g., working directory), and optional variables (e.g., style of ouput). There are some defaults for these variables.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuI3dvcmtpbmcgZGlyZWN0b3J5XG5kaXIgPSAnLidcbiNzdHlsZSBvZiBvdXRwdXRcblxuXG5cblxuYGBgIn0= -->
+<pre class="r"><code>#working directory
+dir = '.'
+#style of output
+</code></pre>
+<!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-<p>Add a new chunk by clicking the <em>Insert Chunk</em> button on the toolbar or by pressing <em>Cmd+Option+I</em>.</p>
-<p>When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the <em>Preview</em> button or press <em>Cmd+Shift+K</em> to preview the HTML file).</p>
-<p>The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike <em>Knit</em>, <em>Preview</em> does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.</p>
 <!-- rnb-text-end -->
 
-<div id="rmd-source-code">LS0tCnRpdGxlOiAiR3Jlc2hhbSBMYWIgRmxvd3cgQ3l0b21ldHJ5IFNpbmdsZSBUaW1lcG9pbnQgQW5hbHlzaXMiCmF1dGhvcjogJ0cuIEF2ZWNpbGxhLCBOLiBCcmFuZHQsIFMuIExhdWVyLCBGLiBBYmR1bC1SYWhtYW4sIEQuIEdyZXNoYW0nCmRhdGU6ICdgciBTeXMuRGF0ZSgpYCcKb3V0cHV0OiBodG1sX25vdGVib29rCi0tLQoKVGhpcyBub3RlYm9vayBjb250YWlucyB0aGUgY29kZSBuZWNlc3NhcnkgdG8gYW5hbHlzaXMgZmxvdyBjeXRvbWV0cnkgZGF0YSBpbiB0aGUgR3Jlc2hhbSBMYWIuIFRvIGFuYWx5emUgZmxvdyBjeXRvbWV0cnkgZGF0YSwgeW91IE1VU1QgdXNlIHRoZSBsYXRlc3QgdmVyc2lvbiBvZiB0aGlzIGNvZGUsIGF2YWlsYWJsZSBvbiB0aGUgW0dyZXNoYW0gTGFiIGdpdGh1Yl0oaHR0cHM6Ly9naXRodWIuY29tL0dyZXNoYW1MYWIvZmxvdykuIAoKYGBge3IgVXNlciBEZWZpbmVkIFZhcmlhYmxlc30KCgoKYGBgCgpBZGQgYSBuZXcgY2h1bmsgYnkgY2xpY2tpbmcgdGhlICpJbnNlcnQgQ2h1bmsqIGJ1dHRvbiBvbiB0aGUgdG9vbGJhciBvciBieSBwcmVzc2luZyAqQ21kK09wdGlvbitJKi4KCldoZW4geW91IHNhdmUgdGhlIG5vdGVib29rLCBhbiBIVE1MIGZpbGUgY29udGFpbmluZyB0aGUgY29kZSBhbmQgb3V0cHV0IHdpbGwgYmUgc2F2ZWQgYWxvbmdzaWRlIGl0IChjbGljayB0aGUgKlByZXZpZXcqIGJ1dHRvbiBvciBwcmVzcyAqQ21kK1NoaWZ0K0sqIHRvIHByZXZpZXcgdGhlIEhUTUwgZmlsZSkuIAoKVGhlIHByZXZpZXcgc2hvd3MgeW91IGEgcmVuZGVyZWQgSFRNTCBjb3B5IG9mIHRoZSBjb250ZW50cyBvZiB0aGUgZWRpdG9yLiBDb25zZXF1ZW50bHksIHVubGlrZSAqS25pdCosICpQcmV2aWV3KiBkb2VzIG5vdCBydW4gYW55IFIgY29kZSBjaHVua3MuIEluc3RlYWQsIHRoZSBvdXRwdXQgb2YgdGhlIGNodW5rIHdoZW4gaXQgd2FzIGxhc3QgcnVuIGluIHRoZSBlZGl0b3IgaXMgZGlzcGxheWVkLgoK</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiAiR3Jlc2hhbSBMYWIgRmxvd3cgQ3l0b21ldHJ5IFNpbmdsZSBUaW1lcG9pbnQgQW5hbHlzaXMiCmF1dGhvcjogJ0cuIEF2ZWNpbGxhLCBOLiBCcmFuZHQsIFMuIExhdWVyLCBGLiBBYmR1bC1SYWhtYW4sIEQuIEdyZXNoYW0nCmRhdGU6ICdgciBTeXMuRGF0ZSgpYCcKb3V0cHV0OiBodG1sX25vdGVib29rCi0tLQoKVGhpcyBub3RlYm9vayBjb250YWlucyB0aGUgY29kZSBuZWNlc3NhcnkgdG8gYW5hbHlzaXMgZmxvdyBjeXRvbWV0cnkgZGF0YSBpbiB0aGUgR3Jlc2hhbSBMYWIuIAoKVG8gYW5hbHl6ZSBmbG93IGN5dG9tZXRyeSBkYXRhLCB5b3UgTVVTVCB1c2UgdGhlIGxhdGVzdCB2ZXJzaW9uIG9mIHRoaXMgY29kZSwgYXZhaWxhYmxlIG9uIHRoZSBbR3Jlc2hhbSBMYWIgZ2l0aHViXShodHRwczovL2dpdGh1Yi5jb20vR3Jlc2hhbUxhYi9mbG93KS4KCioqRXhwZXJpbWVudGFsIG92ZXJ2aWV3KioKCldyaXRlIGEgZGV0YWlsZWQgZGVzY3JpcHRpb24gb2YgeW91ciBleHBlcmltZW50IGhlcmUgaW5jbHVkaW5nIHRoZSBnb2FsIG9mIHRoZSBhbmFseXNpcyBhbmQgeW91ciBpbnRlcnByZXRhdGlvbiBvZiB0aGUgcmVzdWx0cy4gICAKSWYgeW91IHN0aWxsIHNlZSB0aGlzIHRleHQgaXQgbWVhbnMgdGhhdCB5b3UgaGF2ZSBub3QgZGVzY3JpYmVkIHRoZSBleHBlcmltZW50IGFuZCB3aGF0ZXZlciBmb2xsb3dzIGlzIG1lYW5pbmdsZXNzLgoKKlRoaXMgY29kZSBpcyBkZXNpZ25lZCBmb3IgdXNlIHdpdGggdGhlIEFjY3VyaSBmbG93IGN5dG9tZXRlciwgd2hpY2ggaXMgZXF1aXBlZCB3aXRoIHRoZSBmb2xsb3dpbmcgbGFzZXJzIGFuZCBmaWx0ZXJzKgoKKiBCbHVlIGxhc2VyICg0ODggbm0pCiogRkwxIGZpbHRlciA9IDUxNC8yMG5tICAgR0ZQCiogRkwzIGZpbHRlciA9IDU3NS8yNW5tICAgWUZQCgoqIFllbGxvdy9ncmVlbiBsYXNlciAoNTUyIG5tKQoqIEZMMiBmaWx0ZXIgPSA2MTAvMjBubSAgIG1DaGVycnksIGR0b21hdG8KKiBGTDQgZmlsdGVyID0gNTg2LzE1bm0gICBEc1JlZAogIAoqKlJlcXVpcmVtZW50cyoqCgpJbiBvcmRlciB0byBydW4gdGhpcyBjb2RlIHlvdSBuZWVkOgoKKiB0byBwcmVkZWZpbmUgeW91ciBnYXRlcyB1c2luZyB0aGUgZ2F0aW5nLlIgc2NyaXB0CiogdGhlIGdhdGVzLlJkYXRhIHdvcmtzcGFjZSwgd2hpY2ggY29udGFpbnMgdGhlIGdhdGVzIHRvIGJlIHVzZWQgaW4gdGhpcyBzY3JpcHQKKiBhIHRhYiBkZWxpbWl0ZWQgc2FtcGxlIHNoZWV0IGluIHdpdGggdGhlIGZpcnN0IFhYWFggY29sdW1ucyBzZXQgdXAgYXMgaW4gdGhlIGV4YW1wbGUgYmVsb3cKKiB1c2VyIGRlZmluZWQgdmFyaWFibGVzLCBzZWUgYmVsb3cgYW5kIGNodW5rIDEKCioqT3V0cHV0KiogIApUaGlzIHNjcmlwdCBnZW5lcmF0ZXMgcXVhbGl0eSBjb250cm9sIHBsb3RzIGluIHRoZSBub3RlYm9vayBhbmQgYSBmaWxlKHMpIHdpdGggYSBzdW1tYXJ5IG9mIHJlc3VsdHMuClRoZSB1c2VyIGNhbiBnZW5lcmF0ZSB0aGUgb3V0cHV0IGZpbGUocykgaW4gdGhyZWUgZGlmZmVyZW50IHN0eWxlczogCgoxLiBBcyBhIGRhdGFmcmFtZSBjb252ZXJ0ZWQgZnJvbSBmY3Mgd2l0aCBhbGwgb3Igc29tZSBvZiB0aGUgZGF0YS4KMi4gQXMgYSBkYXRhZnJhbWUgd2l0aCBzdW1tYXJ5IHN0YXRpc3RpY3MgKGUuZy4gbWVkaWFuIEZMMSBwZXIgc2FtcGxlKQozLiBBcyBhIG5ldyAuZmNzIGZpbGUgd2l0aCBhZGRpdGlvbmFsIGluZm9ybWF0aW9uIChlLmcuIHBoZW5vdHlwZSBvciBzYW1wbGUgaW5mb3JtYXRpb24pIGFwcGVuZGVkCiAgCioqVmFyaWFibGVzKioKVmFyaWFibGVzIGZvciB0aGUgdXNlciB0byBzZXQgY2FuIGJlIGZvdW5kIGluIGNodW5rIG9uZS4gVGhlc2UgaW5jbHVkZSBib3RoIHJlcXVpcmVkIHZhcmlhYmxlcyAoZS5nLiwgd29ya2luZyBkaXJlY3RvcnkpLCBhbmQgb3B0aW9uYWwgdmFyaWFibGVzIChlLmcuLCBzdHlsZSBvZiBvdXB1dCkuIFRoZXJlIGFyZSBzb21lIGRlZmF1bHRzIGZvciB0aGVzZSB2YXJpYWJsZXMuCgpgYGB7ciBVc2VyIERlZmluZWQgVmFyaWFibGVzfQojd29ya2luZyBkaXJlY3RvcnkKZGlyID0gJy4nCiNzdHlsZSBvZiBvdXRwdXQKCgoKCmBgYAoK</div>
 
 
 
