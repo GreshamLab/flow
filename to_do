@@ -7,3 +7,8 @@ this is a to do list for updating the flow cyto pipeline
     b) summary stats
     c) just write to .fcs file
 4. standardize samplesheet
+
+
+Grace will do:
+1. make gating more robust (variables for gate vertices rather than hard coded matrix sizes)
+2. make output file name a variable - or make default include datetime
