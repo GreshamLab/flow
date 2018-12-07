@@ -9,6 +9,15 @@ this is a to do list for updating the flow cyto pipeline
 4. standardize samplesheet
 
 
-Grace will do:
+PLAN
+1. Start a new Rmd
+2. Figure out what variable options to have
+3. Figure libraries we need
+4. Add qc (plots etc)
+5. Make different output file types
+
+Grace will do at some point:
 1. make gating more robust (variables for gate vertices rather than hard coded matrix sizes)
 2. make output file name a variable - or make default include datetime
+
+
