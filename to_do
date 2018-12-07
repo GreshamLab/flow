@@ -1,0 +1,9 @@
+this is a to do list for updating the flow cyto pipeline
+
+1. Make things tidyverse & ggplot compatible
+2. Make things modular and robust to different experimental designs
+3. Options to output from single timepoint analysis
+    a) df with all/some data
+    b) summary stats
+    c) just write to .fcs file
+4. standardize samplesheet
