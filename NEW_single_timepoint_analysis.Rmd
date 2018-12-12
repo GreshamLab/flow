@@ -74,15 +74,16 @@ Variables for the user to set can be found in chunk one. These include both requ
 #working directory
 dir = '.'
 #file location
-path.data = ''
+path.data = paste(getwd(),"/",sep="")
 #fcs run sample name
-name = ''
+name = "Test"
 #fcs data to extract
 
 #style of output
 
 
 ```
+
 
 **Read in Data**
 *.fcs files must be in a folder with a unique name and have an accompanying .csv samplesheet
@@ -99,24 +100,24 @@ Need to define names
 
 ```{r}
 
-flowData <- read.ncdfFlowSet(path = paste(path.data, name,"/", sep=""), pattern=".fcs", alter.names = TRUE)
+
+files<-list.files(paste(path.data,name,"/", sep=""),full.names=TRUE)
+flowData <- read.ncdfFlowSet(files=files, pattern=".fcs", alter.names = TRUE)
+
 
 sample.sheet <- read.csv(paste(path.data,"samplesheet_",name,".csv", sep=""))
 
 #Adds a sample sheet data to the pData of the flowset
 
-sampleNames(flowData) <- paste(gsub(" ","_",sample.sheet$Strain),"_T",gsub(" ","_",sample.sheet$Timepoint),"_",sub(" ","_",sample.sheet$Well), sep="")
+sampleNames(flowData) <- paste(gsub(" ","_",sample.sheet$Strain),"_",sub(" ","_",sample.sheet$Well), sep="")
 
 #Need to determine samplesheet inputs
+pData(flowData)$Well <- gsub(" ","_",sample.sheet$Well)
 pData(flowData)$Strain <- gsub(" ","_",sample.sheet$Strain)
 pData(flowData)$Genotype <- gsub(" ","_",sample.sheet$Genotype)
-pData(flowData)$Population <- gsub(" ","_",sample.sheet$Population)
-pData(flowData)$Vessel <- gsub(" ","_",sample.sheet$Vessel)
-pData(flowData)$Media <- gsub(" ","_",sample.sheet$Media)
 pData(flowData)$Ploidy <- gsub(" ","_",sample.sheet$Ploidy)
-pData(flowData)$Well <- gsub(" ","_",sample.sheet$Well)
+pData(flowData)$Media <- gsub(" ","_",sample.sheet$Media)
 pData(flowData)$Experiment <- gsub(" ","_",sample.sheet$Experiment)
-pData(flowData)$Timepoint <- gsub(" ","_",sample.sheet$Timepoint)
 ```
 
 ```{r flowSet summaries}
@@ -130,6 +131,51 @@ fsApply(flowData, each_col, median)[1:length(flowData)]
 samples.num <- length(flowData)
 print(samples.num)
 ```
+
+#Gating
+```{r Application of Gates}
+##Subset the data by applying sequential gates##
+
+#Load Gates
+load(file = "gates.RData")
+
+#apply doublet gate to ALL SAMPLES
+flowData.singlets <- Subset(flowData, pg.singlets) 
+fsApply(flowData.singlets, each_col, length)[1:samples.num]
+singlets <- fsApply(flowData.singlets, each_col, length)[1:samples.num]
+barplot(singlets/total, ylim=c(0,1), ylab = "Proportion singlet cells", las=2, cex.names = 0.5, names.arg=sampleNames(flowData))
+
+#apply debris gates
+filteredData <- Subset(flowData.singlets, pg.nondebris) 
+fsApply(filteredData, each_col, length)[1:samples.num]
+non.debris <- fsApply(filteredData, each_col, length)[1:samples.num]
+barplot(non.debris/total, ylim=c(0,1), ylab = "Proportion nondebris cells", las=2, cex.names = 0.5, names.arg=str_sub(sampleNames(filteredData)))
+
+#this gate defines nongfp cells
+gfp.neg <- Subset(filteredData, gln.zero) 
+fsApply(gfp.neg, each_col, length)[1:samples.num]
+non.gfp <- fsApply(gfp.neg, each_col, length)[1:samples.num]
+barplot(non.gfp/non.debris, ylim=c(0,1), ylab = "Proportion cells with no GFP", las=2, cex.names = 0.5, names.arg=str_sub(sampleNames(filteredData)))
+
+#this gate defines one copy gfp cells
+gfp.one <- Subset(filteredData, gln.one) 
+fsApply(gfp.one, each_col, length)[1:samples.num]
+gfp.one.cells <- fsApply(gfp.one, each_col, length)[1:samples.num]
+barplot(gfp.one.cells/non.debris, ylim=c(0,1), ylab = "Proportion cells with 1 copy GFP", las=2, cex.names = 0.5, names.arg=str_sub(sampleNames(filteredData)))
+
+#this gate defines two copy gfp cells
+gfp.two <- Subset(filteredData, gln.two) 
+fsApply(gfp.two, each_col, length)[1:samples.num]
+gfp.two.cells <- fsApply(gfp.two, each_col, length)[1:samples.num]
+  barplot(gfp.two.cells/non.debris, ylim=c(0,1), ylab = "Proportion cells with 2 copy GFP", las=2, cex.names = 0.5, names.arg=str_sub(sampleNames(filteredData)))
+
+#this gate defines thre copy plus gfp cells
+gfp.thr <- Subset(filteredData, gln.three) 
+fsApply(gfp.thr, each_col, length)[1:samples.num]
+gfp.thr.cells <- fsApply(gfp.thr, each_col, length)[1:samples.num]
+barplot(gfp.thr.cells/non.debris, ylim=c(0,1), ylab = "Proportion cells with 3 copy+ GFP", las=2, cex.names = 0.5, names.arg=str_sub(sampleNames(filteredData)))
+```
+
 
 ```{r Data extraction and plotting}
 #Transfer data into a dataframe and produce summary stats
@@ -147,22 +193,20 @@ for(i in 1:length(filteredData)){
   fl3.a <- exprs(filteredData[[i,5]])
   fl4.a <- exprs(filteredData[[i,6]])
   sample <- sampleNames(filteredData)[i]
+  well <- pData(filteredData)$Well[i]
   strain <- pData(filteredData)$Strain[i]
   genotype <- pData(filteredData)$Genotype[i]
-  population <- pData(filteredData)$Population[i]
-  vessel <- pData(filteredData)$Vessel[i]
-  media <- pData(filteredData)$Media[i]
   ploidy <- pData(filteredData)$Ploidy[i]
-  well <- pData(filteredData)$Well[i]
+  media <- pData(filteredData)$Media[i]
   exp <- pData(filteredData)$Experiment[i]
-  timepoint <- pData(filteredData)$Timepoint[i]
-  run <- pData(filteredData)$Run[i]
 
   filtered.data<-rbind(filtered.data,cbind(FSC.A=fsc.a,SSC.A=ssc.a,FL1.A=fl1.a,FL2.A=fl2.a, FL3.A=fl3.a, FL4.A=fl4.a,SAMPLE=sample, STRAIN=strain, GENOTYPE=genotype, POPULATION = population, VESSEL=vessel, MEDIA=media, PLOIDY=ploidy, WELL=well, EXP=exp, TIMEPOINT=timepoint, RUN=run))
   
   stats.data<-(rbind(stats.data,cbind(SAMPLE=sample,STRAIN=strain,POPULATION=population,VESSEL=vessel,TIMEPOINT=timepoint,COUNT=length(fsc.a),FSC_MEDIAN=median(fsc.a),FSC_MEAN=mean(fsc.a),FSC_SD=sd(fsc.a),FL1_MEDIAN=median(fl1.a),FL1_MEAN=mean(fl1.a),FL1_SD=sd(fl1.a),NORMALIZED_GFP_MEDIAN=median(fl1.a/fsc.a),NORMALIZED_GFP_MEAN=mean(fl1.a/fsc.a),NORMALIZED_GFP_SD=sd(fl1.a/fsc.a))))
 }  
-  
+
+
+
  #Cleans up DataFrames
   filtered.data<-filtered.data[2:nrow(filtered.data),]
   filtered.data$FSC.A<-as.numeric(filtered.data$FSC.A)
@@ -172,16 +216,12 @@ for(i in 1:length(filteredData)){
   filtered.data$FL3.A<-as.numeric(filtered.data$FL3.A)
   filtered.data$FL4.A<-as.numeric(filtered.data$FL4.A)
   filtered.data$SAMPLE<-as.factor(filtered.data$SAMPLE)
+  filtered.data$WELL<-as.factor(filtered.data$WELL)
   filtered.data$STRAIN<-as.factor(filtered.data$STRAIN)
   filtered.data$GENOTYPE<-as.factor(filtered.data$GENOTYPE)
-  filtered.data$POPULATION<-as.factor(filtered.data$POPULATION)
-  filtered.data$VESSEL<-as.factor(filtered.data$VESSEL)
-  filtered.data$MEDIA<-as.factor(filtered.data$MEDIA)
   filtered.data$PLOIDY<-as.factor(filtered.data$PLOIDY)
-  filtered.data$WELL<-as.factor(filtered.data$WELL)
+  filtered.data$MEDIA<-as.factor(filtered.data$MEDIA)
   filtered.data$EXP<-as.factor(filtered.data$EXP)
-  filtered.data$TIMEPOINT<-as.factor(filtered.data$TIMEPOINT)
-  filtered.data$RUN<-as.factor(filtered.data$RUN)
   
   
   stats.data<-stats.data[2:nrow(stats.data),]
