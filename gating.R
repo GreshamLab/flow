@@ -65,23 +65,23 @@ xyplot(SSC.A ~ FSC.A, data=flowData[[1]], displayFilter=TRUE, xlim=c(0,3e6), yli
 xyplot(SSC.A ~ FSC.A, data=flowData, displayFilter=TRUE, xlim=c(0,3e5), ylim=c(0,3e6), filter=pg.nondebris, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T)
 
 ##############################
-#3. Generate Gate for non-fluorescencing cells
+#3. Generate Gate for non-fluorescencing cells in FL1 Channel
 plot(flowData[[1]], c('FSC.A','FL1.A'), xlim=c(0,5e6), ylim=c(0,5e4), smooth=F)
 Cgate <- locator(10)
 gm.3 <- matrix(,10,2)
 colnames(gm.3) <- c('FSC.A','FL1.A')
 gm.3[,1] <- Cgate$x
 gm.3[,2] <- Cgate$y
-pg.nongfp <- polygonGate(filterId="GFPneg",.gate=gm.3)
+pg.nonflone <- polygonGate(filterId="FL1neg",.gate=gm.3)
 
 #test that the non-fluorescing gate looks reasonable for the sample
-xyplot(FL1.A~FSC.A,data=flowData[[1]], xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.nongfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T)
+xyplot(FL1.A~FSC.A,data=flowData[[1]], xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.nonflone, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T)
 
 #test that the non-fluorescing gate looks reasonable over all the samples
-xyplot(FL1.A~FSC.A,data=flowData, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.nongfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T)
+xyplot(FL1.A~FSC.A,data=flowData, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.nonflone, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T)
 
 ##############################
-#4. Generate Gate for fluorescencing cells
+#4. Generate Gate for fluorescencing cells in FL1 Channel
 plot(flowData[[2]], c('FSC.A','FL1.A'), xlim=c(0,5e6), ylim=c(0,5e4), smooth=F)
 
 #overlay gate for non-fluorescencing cells
@@ -93,7 +93,7 @@ gm.4 <- matrix(,10,2)
 colnames(gm.4) <- c('FSC.A','FL1.A')
 gm.4[,1] <- Dgate$x
 gm.4[,2] <- Dgate$y
-pg.gfp <- polygonGate(filterId="GFPpos",.gate=gm.4)
+pg.flone <- polygonGate(filterId="FL1pos",.gate=gm.4)
 
 #check the two gates together on the sample
 plot(flowData[[2]], c('FSC.A','FL1.A'), xlim=c(0,5e6), ylim=c(0,5e4), smooth=F)
@@ -101,14 +101,14 @@ polygon(Cgate$x, Cgate$y, border='red')
 polygon(Dgate$x, Dgate$y, border='blue')
 
 #test that the fluorescing gate looks reasonable for the sample
-xyplot(FL1.A~FSC.A,data=flowData[[1]], xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.gfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T)
+xyplot(FL1.A~FSC.A,data=flowData[[1]], xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.flone, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T)
 
 #test that the fluorescing gate looks reasonable over all the samples
-xyplot(FL1.A~FSC.A,data=flowData, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.gfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T)
+xyplot(FL1.A~FSC.A,data=flowData, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.flone, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T)
 
 ################################
 
-#5. Generate Gate for high fluorescencing cells
+#5. Generate Gate for high fluorescencing cells in FL1 Channel
 plot(flowData[[6]], c('FSC.A','FL1.A'), xlim=c(0,5e6), ylim=c(0,5e4), smooth=F)
 
 #overlay gate for non-fluorescencing and low fluorecent cells
@@ -121,7 +121,7 @@ gm.5 <- matrix(,10,2)
 colnames(gm.5) <- c('FSC.A','FL1.A')
 gm.5[,1] <- Egate$x
 gm.5[,2] <- Egate$y
-pg.hi.gfp <- polygonGate(filterId="hiGFPpos",.gate=gm.5)
+pg.hi.flone <- polygonGate(filterId="hiFL1pos",.gate=gm.5)
 
 #check the all gates together on the sample
 plot(flowData[[6]], c('FSC.A','FL1.A'), xlim=c(0,5e6), ylim=c(0,5e4), smooth=F)
@@ -130,10 +130,10 @@ polygon(Dgate$x, Dgate$y, border='blue')
 polygon(Egate$x, Egate$y, border='purple')
 
 #test that the high fluorescing gate looks reasonable for the sample
-xyplot(FL1.A~FSC.A,data=flowData[[6]], xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.hi.gfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T)
+xyplot(FL1.A~FSC.A,data=flowData[[6]], xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.hi.flone, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T)
 
 #test that the high fluorescing gate looks reasonable over all the samples
-xyplot(FL1.A~FSC.A,data=flowData, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.hi.gfp, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T)
+xyplot(FL1.A~FSC.A,data=flowData, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.hi.flone, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T)
 
 
 ################################
