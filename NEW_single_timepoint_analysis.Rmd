@@ -97,7 +97,7 @@ extract.Width <- "No"
 extract.Time  <- "No"
 
 #samplesheet parameters
-sample.param <- data.frame(SAMPLE=NA, WELL=NA, STRAIN=NA, PLOIDY=NA, MEDIA=NA, EXPERIMENT=NA)
+sample.param <- data.frame(SAMPLE=NA, WELL=NA, STRAIN=NA, GENOTYPE=NA, PLOIDY=NA, MEDIA=NA, EXPERIMENT=NA)
 
 #style of output
 #FlowSet
@@ -295,23 +295,23 @@ for(i in 1:length(filteredData)){
   if(extract.Width == "Yes"){width <- exprs(filteredData[[i,11]])}
   if(extract.Time == "Yes"){time <- exprs(filteredData[[i,12]])}
 
-  temp.row <- cbind(SAMPLE=sample, WELL=well, STRAIN=strain, GENOTYPE=genotype, PLOIDY=ploidy, MEDIA=media,  EXPERIMENT=exp)
-  if(extract.FSC_A == "Yes"){temp.row<-cbind(temp.row, FSC.A=fsc.a)}
-  if(extract.SSC_A == "Yes"){temp.row<-cbind(temp.row, SSC.A=ssc.a)}
-  if(extract.FL1_A == "Yes"){temp.row<-cbind(temp.row, FL1.A=fl1.a)}
-  if(extract.FL2_A == "Yes"){temp.row<-cbind(temp.row, FL2.A=fl2.a)}
-  if(extract.FL3_A == "Yes"){temp.row<-cbind(temp.row, FL3.A=fl3.a)}
-  if(extract.FL4_A == "Yes"){temp.row<-cbind(temp.row, FL4.A=fl4.a)}
-  if(extract.FSC_H == "Yes"){temp.row<-cbind(temp.row, FSC.H=fsc.h)}
-  if(extract.SSC_H == "Yes"){temp.row<-cbind(temp.row, SSC.H=ssc.h)}
-  if(extract.FL1_H == "Yes"){temp.row<-cbind(temp.row, FL1.H=fl1.h)}
-  if(extract.FL2_H == "Yes"){temp.row<-cbind(temp.row, FL2.H=fl2.h)}
-  if(extract.FL3_H == "Yes"){temp.row<-cbind(temp.row, FL3.H=fl3.h)}
-  if(extract.FL4_H == "Yes"){temp.row<-cbind(temp.row, FL4.H=fl4.h)}
-  if(extract.Width == "Yes"){temp.row<-cbind(temp.row, Width=width)}
-  if(extract.Time == "Yes"){temp.row<-cbind(temp.row, Time=time)}
+  filtered.data <- rbind(filtered.data, cbind(SAMPLE=sample,WELL=well,STRAIN=strain,GENOTYPE=genotype,PLOIDY=ploidy,MEDIA=media,EXPERIMENT=exp,
+                    if(extract.FSC_A == "Yes"){FSC.A=fsc.a},
+                    if(extract.SSC_A == "Yes"){SSC.A=ssc.a},
+                    if(extract.FL1_A == "Yes"){FL1.A=fl1.a},
+                    if(extract.FL2_A == "Yes"){FL2.A=fl2.a},
+                    if(extract.FL3_A == "Yes"){FL3.A=fl3.a},
+                    if(extract.FL4_A == "Yes"){FL4.A=fl4.a},
+                    if(extract.FSC_H == "Yes"){FSC.H=fsc.h},
+                    if(extract.SSC_H == "Yes"){SSC.H=ssc.h},
+                    if(extract.FL1_H == "Yes"){FL1.H=fl1.h},
+                    if(extract.FL2_H == "Yes"){FL2.H=fl2.h},
+                    if(extract.FL3_H == "Yes"){FL3.H=fl3.h},
+                    if(extract.FL4_H == "Yes"){FL4.H=fl4.h},
+                    if(extract.Width == "Yes"){Width=width},
+                    if(extract.Time == "Yes"){Time=time}))
   
-  filtered.data <- rbind(filtered.data, temp.row)
+  
  # stats.data<-(rbind(stats.data,cbind(SAMPLE=sample,STRAIN=strain,POPULATION=population,VESSEL=vessel,TIMEPOINT=timepoint,COUNT=length(fsc.a),FSC_MEDIAN=median(fsc.a),FSC_MEAN=mean(fsc.a),FSC_SD=sd(fsc.a),FL1_MEDIAN=median(fl1.a),FL1_MEAN=mean(fl1.a),FL1_SD=sd(fl1.a),NORMALIZED_GFP_MEDIAN=median(fl1.a/fsc.a),NORMALIZED_GFP_MEAN=mean(fl1.a/fsc.a),NORMALIZED_GFP_SD=sd(fl1.a/fsc.a))))
 }  
 
@@ -325,11 +325,11 @@ for(i in 1:length(filteredData)){
   filtered.data$GENOTYPE<-as.factor(filtered.data$GENOTYPE)
   filtered.data$PLOIDY<-as.factor(filtered.data$PLOIDY)
   filtered.data$MEDIA<-as.factor(filtered.data$MEDIA)
-  filtered.data$EXP<-as.factor(filtered.data$EXPERIMENT)
+  filtered.data$EXPERIMENT<-as.factor(filtered.data$EXPERIMENT)
   if(extract.FSC_A == "Yes"){filtered.data$FSC.A<-as.numeric(filtered.data$FSC.A)}
   if(extract.SSC_A == "Yes"){filtered.data$SSC.A<-as.numeric(filtered.data$SSC.A)}
   if(extract.FL1_A == "Yes"){filtered.data$FL1.A<-as.numeric(filtered.data$FL1.A)}
-  if(extract.FL2_A == "Yes"){filtered.data$FL2.A<-as.numeric(filtered.data$FL2.A}
+  if(extract.FL2_A == "Yes"){filtered.data$FL2.A<-as.numeric(filtered.data$FL2.A)}
   if(extract.FL3_A == "Yes"){filtered.data$FL3.A<-as.numeric(filtered.data$FL3.A)}
   if(extract.FL4_A == "Yes"){filtered.data$FL4.A<-as.numeric(filtered.data$FL4.A)}
   if(extract.FSC_H == "Yes"){filtered.data$FSC.A<-as.numeric(filtered.data$FSC.A)}
