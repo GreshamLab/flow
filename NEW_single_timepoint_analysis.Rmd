@@ -66,7 +66,7 @@ requireInstall("tidyverse")
 ```
 
   
-**Variables**
+**Variables and Output Settings**
 Variables for the user to set can be found in chunk one. These include both required variables (e.g., working directory), and optional variables (e.g., style of ouput). There are some defaults for these variables.
 
 
@@ -101,11 +101,15 @@ sample.param <- data.frame(SAMPLE=NA, WELL=NA, STRAIN=NA, GENOTYPE=NA, PLOIDY=NA
 
 #style of output
 #FlowSet
-
+save.flowset <- "Yes"
+#filename
+file.flowset <- "EXPflowdataDATE"
 #DataFrame - Individual data points
-
+save.df <- "Yes"
+file.df <- "EXPdfDATE"
 #DataFrame - Experiment Statistics
-
+save.stats <- "Yes"
+file.stats <- "EXPstatsDATE"
 
 ```
 
@@ -312,7 +316,7 @@ for(i in 1:length(filteredData)){
                     if(extract.Time == "Yes"){Time=time}))
   
   
- # stats.data<-(rbind(stats.data,cbind(SAMPLE=sample,STRAIN=strain,POPULATION=population,VESSEL=vessel,TIMEPOINT=timepoint,COUNT=length(fsc.a),FSC_MEDIAN=median(fsc.a),FSC_MEAN=mean(fsc.a),FSC_SD=sd(fsc.a),FL1_MEDIAN=median(fl1.a),FL1_MEAN=mean(fl1.a),FL1_SD=sd(fl1.a),NORMALIZED_GFP_MEDIAN=median(fl1.a/fsc.a),NORMALIZED_GFP_MEAN=mean(fl1.a/fsc.a),NORMALIZED_GFP_SD=sd(fl1.a/fsc.a))))
+ #stats.data<-(rbind(stats.data,cbind(SAMPLE=sample,STRAIN=strain,POPULATION=population,VESSEL=vessel,TIMEPOINT=timepoint,COUNT=length(fsc.a),FSC_MEDIAN=median(fsc.a),FSC_MEAN=mean(fsc.a),FSC_SD=sd(fsc.a),FL1_MEDIAN=median(fl1.a),FL1_MEAN=mean(fl1.a),FL1_SD=sd(fl1.a),NORMALIZED_GFP_MEDIAN=median(fl1.a/fsc.a),NORMALIZED_GFP_MEAN=mean(fl1.a/fsc.a),NORMALIZED_GFP_SD=sd(fl1.a/fsc.a))))
 }  
 
 
@@ -373,9 +377,9 @@ for(i in 1:length(filteredData)){
 
 #Plots
 ```{r Desnity Plots}
-ggplot(filtered.data )+
+ggplot(filtered.data)+
       geom_density(aes(x = FSC.A), colour = "black")+
-      annotate("text", x=0.01, y=5, label = paste("FSC MEDIAN-",stats.data$FSC_MEDIAN, sep=" "),colour = "black", size=2)+
+      #annotate("text", x=0.01, y=5, label = paste("FSC MEDIAN-",stats.data$FSC_MEDIAN, sep=" "),colour = "black", size=2)+
       theme()+
       labs(y = "Counts", x = "FSC.A") +
       scale_x_log10()+
@@ -383,28 +387,18 @@ ggplot(filtered.data )+
 
 
 ggplot(filtered.data )+
-      geom_density(aes(x = FSC.A), colour = "black")+
-  #annotate("text", -Inf, Inf, label = "Top-left", hjust = 0, vjust = 1)+
-      annotate("text", x=0.01, y=5, label = paste("FSC MEDIAN-",stats.data$FSC_MEDIAN, sep=" "),colour = "black", size=2)+
       geom_density(aes(x = FL1.A), colour = "green")+
-      annotate("text", x=0.01, y=4, label = paste("FL1 MEDIAN-",stats.data$FL1_MEDIAN, sep=" "),colour = "green", size=2)+
-      geom_density(aes(x = FL1.A/FSC.A), colour = "blue")+
-      annotate("text", x=0.01, y=3,label = paste("FL1/FSC MEDIAN-",signif(stats.data$NORMALIZED_GFP_MEDIAN,4), sep=" "),colour = "blue", size=2)+
+      #annotate("text", x=0.01, y=4, label = paste("FL1 MEDIAN-",stats.data$FL1_MEDIAN, sep=" "),colour = "green", size=2)+
       theme()+
-      labs(y = "Counts") +
+      labs(y = "Counts", x = "FL1.A") +
       scale_x_log10()+
       facet_wrap('SAMPLE')
 
 ggplot(filtered.data )+
-      geom_density(aes(x = FSC.A), colour = "black")+
-  #annotate("text", -Inf, Inf, label = "Top-left", hjust = 0, vjust = 1)+
-      annotate("text", x=0.01, y=5, label = paste("FSC MEDIAN-",stats.data$FSC_MEDIAN, sep=" "),colour = "black", size=2)+
-      geom_density(aes(x = FL1.A), colour = "green")+
-      annotate("text", x=0.01, y=4, label = paste("FL1 MEDIAN-",stats.data$FL1_MEDIAN, sep=" "),colour = "green", size=2)+
       geom_density(aes(x = FL1.A/FSC.A), colour = "blue")+
-      annotate("text", x=0.01, y=3,label = paste("FL1/FSC MEDIAN-",signif(stats.data$NORMALIZED_GFP_MEDIAN,4), sep=" "),colour = "blue", size=2)+
+      #annotate("text", x=0.01, y=3,label = paste("FL1/FSC MEDIAN-",signif(stats.data$NORMALIZED_GFP_MEDIAN,4), sep=" "),colour = "blue", size=2)+
       theme()+
-      labs(y = "Counts") +
+      labs(y = "Counts",x = "FL1.A/FSC.A") +
       scale_x_log10()+
       facet_wrap('SAMPLE')
 
@@ -412,6 +406,35 @@ ggplot(filtered.data )+
 ```
 
 ```{r Data Distribution Plots}
+ggplot(filtered.data, aes(SAMPLE,FSC.A)) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 6)) +
+    stat_boxplot(geom ='errorbar', colour = "grey") +
+    geom_boxplot(outlier.shape = NA, colour = "grey") +
+    #geom_hline(yintercept=haploid.fsc, lty=2, colour = "black") +
+    #geom_hline(yintercept=diploid.fsc, lty=2, colour = "blue") +
+    scale_y_log10()+
+    scale_x_discrete(labels=levels(filtered.data$SAMPLE))
+
+ggplot(filtered.data, aes(SAMPLE,FL1.A)) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 6)) +
+    stat_boxplot(geom ='errorbar', colour = "lightgreen") +
+    geom_boxplot(outlier.shape = NA, colour = "lightgreen") +
+    #geom_hline(yintercept=gfp.bg, lty=2, colour = "yellow") +
+    #geom_hline(yintercept=gfp.wt, lty=2, colour = "green") +
+    labs(title= paste("FL1.A", sep="")) +
+    scale_y_log10()+
+    scale_x_discrete(labels=levels(filtered.data$SAMPLE))
+
+ggplot(filtered.data, aes(SAMPLE,FL1.A/FSC.A)) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 6)) +
+    stat_boxplot(geom ='errorbar', colour = "green") +
+    geom_boxplot(outlier.shape = NA, colour = "green") +
+    #geom_hline(yintercept=gfp.norm, lty=2, colour = "blue") +
+    scale_y_log10()+
+    scale_x_discrete(labels=levels(filtered.data$SAMPLE))
 ```
 
 ```{r Quantitation of Signal}
@@ -467,4 +490,39 @@ flone.pos.cells <- fsApply(flone.pos, each_col, length)[1:samples.num]
 barplot(flone.pos.cells/non.debris, ylim=c(0,1), ylab = "Proportion cells with Flourescense", las=2, cex.names = 0.5, names.arg=str_sub(sampleNames(filteredData)))
 
 ```
+
+##Population composition
+```{r}
+###GLUTAMINE###
+pop.composition <- rbind(non.gfp/non.debris,gfp.one.cells/non.debris,gfp.two.cells/non.debris, gfp.thr.cells/non.debris)
+barplot(pop.composition, ylab="Proportion of population", legend=c("No GFP", "One copy GFP", "Two copy GFP", "Three+ copy GFP"),las=2, ylim=c(0,1), col=c("black", "grey", "light green", "dark green"), cex.names = 0.5,names.arg=str_sub(sampleNames(flowData),1,11))
+
+
+```
+
+##Extract data for further processing
+```{r Extract data for further processing}
+
+PopProportion_zeroGFP <- non.gfp/non.debris
+PopProportion_oneGFP <- gfp.one.cells/non.debris
+PopProportion_twoGFP <- gfp.two.cells/non.debris
+PopProportion_threeGFP <- gfp.thr.cells/non.debris
+all.data <- cbind(stats.data, PopProportion_zeroGFP, PopProportion_oneGFP, PopProportion_twoGFP, PopProportion_threeGFP, non.debris)
+colnames(all.data) <- c(colnames(stats.data), "PopProp_0copy", "PopProp_1copy", "PopProp_2copy", "PopProp_3plus", "Cells counted")
+
+
+#Save the current dataframe
+write.table(all.data, file="DataOut_11302018.csv", row.names=TRUE, quote=F, sep=",")
+```
+
+** Saving Data **
+```{r Saves Data}
+if(save.flowset == "Yes"){save(flowData, paste(file.flowset,".Rdata",sep="")}
+
+if(save.df== "Yes"){}
+
+if(save.stats== "Yes"){}
+
+```
+
 
