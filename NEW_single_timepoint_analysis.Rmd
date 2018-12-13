@@ -161,7 +161,6 @@ print(total)
 #Print the medians of data values for each measurement
 fsApply(flowData, each_col, median)[1:length(flowData)]
 
-#combine all flowSets into a single flowset
 samples.num <- length(flowData)
 print(samples.num)
 ```
@@ -278,12 +277,12 @@ if(extract.Time == "Yes"){filtered.data<-cbind(filtered.data, Time=NA)}
 
 for(i in 1:length(filteredData)){
   sample <- sampleNames(filteredData)[i]
-  well <- pData(filteredData)$Well[i]
-  strain <- pData(filteredData)$Strain[i]
-  genotype <- pData(filteredData)$Genotype[i]
-  ploidy <- pData(filteredData)$Ploidy[i]
-  media <- pData(filteredData)$Media[i]
-  exp <- pData(filteredData)$Experiment[i]
+  well <- as.character(pData(filteredData)$Well[i])
+  strain <- as.character(pData(filteredData)$Strain[i])
+  genotype <- as.character(pData(filteredData)$Genotype[i])
+  ploidy <- as.character(pData(filteredData)$Ploidy[i])
+  media <- as.character(pData(filteredData)$Media[i])
+  exp <- as.character(pData(filteredData)$Experiment[i])
   if(extract.FSC_A == "Yes"){fsc.a <- exprs(filteredData[[i,1]])}
   if(extract.SSC_A == "Yes"){ssc.a <- exprs(filteredData[[i,2]])}
   if(extract.FL1_A == "Yes"){fl1.a <- exprs(filteredData[[i,3]])}
@@ -323,13 +322,6 @@ for(i in 1:length(filteredData)){
 
  #Cleans up DataFrames
   filtered.data<-filtered.data[2:nrow(filtered.data),]
-  filtered.data$SAMPLE<-as.factor(filtered.data$SAMPLE)
-  filtered.data$WELL<-as.factor(filtered.data$WELL)
-  filtered.data$STRAIN<-as.factor(filtered.data$STRAIN)
-  filtered.data$GENOTYPE<-as.factor(filtered.data$GENOTYPE)
-  filtered.data$PLOIDY<-as.factor(filtered.data$PLOIDY)
-  filtered.data$MEDIA<-as.factor(filtered.data$MEDIA)
-  filtered.data$EXPERIMENT<-as.factor(filtered.data$EXPERIMENT)
   if(extract.FSC_A == "Yes"){filtered.data$FSC.A<-as.numeric(filtered.data$FSC.A)}
   if(extract.SSC_A == "Yes"){filtered.data$SSC.A<-as.numeric(filtered.data$SSC.A)}
   if(extract.FL1_A == "Yes"){filtered.data$FL1.A<-as.numeric(filtered.data$FL1.A)}
@@ -342,8 +334,8 @@ for(i in 1:length(filteredData)){
   if(extract.FL2_H == "Yes"){filtered.data$FL2.A<-as.numeric(filtered.data$FL2.A)}
   if(extract.FL3_H == "Yes"){filtered.data$FL3.A<-as.numeric(filtered.data$FL3.A)}
   if(extract.FL4_H == "Yes"){filtered.data$FL4.A<-as.numeric(filtered.data$FL4.A)}
-  if(extract.Width == "Yes"){cbind(filtered.data, Width=width)}
-  if(extract.Time == "Yes"){cbind(filtered.data, Time=time)}
+  if(extract.Width == "Yes"){filtered.data$Width<-as.numeric(filtered.data$Width)}
+  if(extract.Time == "Yes"){filtered.data$Time<-as.numeric(filtered.data$Time)}
   
 
   
