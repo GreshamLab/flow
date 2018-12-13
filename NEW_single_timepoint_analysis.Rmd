@@ -101,9 +101,9 @@ sample.param <- data.frame(SAMPLE=NA, WELL=NA, STRAIN=NA, GENOTYPE=NA, PLOIDY=NA
 
 #style of output
 #FlowSet
-save.flowset <- "Yes"
+save.flowset <- "No"
 #filename
-file.flowset <- "EXPflowdataDATE"
+folder.flowset <- "EXPflowdataDATE"
 #DataFrame - Individual data points
 save.df <- "Yes"
 file.df <- "EXPdfDATE"
@@ -252,12 +252,11 @@ xyplot(SSC.A ~ FSC.A, data=dataLGCLTransform, smooth=F,  stat=T, pos=0.5, abs=T,
 
 
 
-```{r Data extraction and plotting}
-#Transfer data into a dataframe and produce summary stats
+```{r Data extraction}
+#Transfer data into a dataframe
 
-#Summary Statistics of Normalized Filtered Data
 #Move filtered data into a dataframe
-filtered.data <- sample.param
+stats.data <- sample.param
 if(extract.FSC_A == "Yes"){filtered.data<-cbind(filtered.data, FSC.A=NA)}
 if(extract.SSC_A == "Yes"){filtered.data<-cbind(filtered.data, SSC.A=NA)}
 if(extract.FL1_A == "Yes"){filtered.data<-cbind(filtered.data, FL1.A=NA)}
@@ -272,8 +271,6 @@ if(extract.FL3_H == "Yes"){filtered.data<-cbind(filtered.data, FL3.H=NA)}
 if(extract.FL4_H == "Yes"){filtered.data<-cbind(filtered.data, FL4.H=NA)}
 if(extract.Width == "Yes"){filtered.data<-cbind(filtered.data, Width=NA)}
 if(extract.Time == "Yes"){filtered.data<-cbind(filtered.data, Time=NA)}
-
-#stats.data <- data.frame(SAMPLE=NA,STRAIN=NA,POPULATION=NA,VESSEL=NA,TIMEPOINT=NA,COUNT=NA,FSC_MEDIAN=NA,FSC_MEAN=NA,FSC_SD=NA,FL1_MEDIAN=NA,FL1_MEAN=NA,FL1_SD=NA,NORMALIZED_GFP_MEDIAN=NA,NORMALIZED_GFP_MEAN=NA,NORMALIZED_GFP_SD=NA)
 
 for(i in 1:length(filteredData)){
   sample <- sampleNames(filteredData)[i]
@@ -313,12 +310,7 @@ for(i in 1:length(filteredData)){
                     if(extract.FL4_H == "Yes"){FL4.H=fl4.h},
                     if(extract.Width == "Yes"){Width=width},
                     if(extract.Time == "Yes"){Time=time}))
-  
-  
- #stats.data<-(rbind(stats.data,cbind(SAMPLE=sample,STRAIN=strain,POPULATION=population,VESSEL=vessel,TIMEPOINT=timepoint,COUNT=length(fsc.a),FSC_MEDIAN=median(fsc.a),FSC_MEAN=mean(fsc.a),FSC_SD=sd(fsc.a),FL1_MEDIAN=median(fl1.a),FL1_MEAN=mean(fl1.a),FL1_SD=sd(fl1.a),NORMALIZED_GFP_MEDIAN=median(fl1.a/fsc.a),NORMALIZED_GFP_MEAN=mean(fl1.a/fsc.a),NORMALIZED_GFP_SD=sd(fl1.a/fsc.a))))
 }  
-
-
 
  #Cleans up DataFrames
   filtered.data<-filtered.data[2:nrow(filtered.data),]
@@ -336,42 +328,56 @@ for(i in 1:length(filteredData)){
   if(extract.FL4_H == "Yes"){filtered.data$FL4.A<-as.numeric(filtered.data$FL4.A)}
   if(extract.Width == "Yes"){filtered.data$Width<-as.numeric(filtered.data$Width)}
   if(extract.Time == "Yes"){filtered.data$Time<-as.numeric(filtered.data$Time)}
-  
-
-  
-  
-  
-  #stats.data<-stats.data[2:nrow(stats.data),]
-  #stats.data$SAMPLE<-as.factor(stats.data$SAMPLE)
-  #stats.data$STRAIN<-as.factor(stats.data$STRAIN)
-  #stats.data$POPULATION<-as.factor(stats.data$POPULATION)
-  #stats.data$VESSEL<-as.factor(stats.data$VESSEL)
-  #stats.data$TIMEPOINT<-as.factor(stats.data$TIMEPOINT)
-  #stats.data$COUNT<-as.numeric(stats.data$COUNT)
-  #stats.data$FSC_MEDIAN<-as.numeric(stats.data$FSC_MEDIAN)
- # stats.data$FSC_MEAN<-as.numeric(stats.data$FSC_MEAN)    
-  #stats.data$FSC_SD<-as.numeric(stats.data$FSC_SD)
-  #stats.data$FL1_MEDIAN<-as.numeric(stats.data$FL1_MEDIAN)
-  #stats.data$FL1_MEAN<-as.numeric(stats.data$FL1_MEAN)    
-  #stats.data$FL1_SD<-as.numeric(stats.data$FL1_SD)
-  #stats.data$NORMALIZED_GFP_MEDIAN<-as.numeric(stats.data$NORMALIZED_GFP_MEDIAN)
-  #stats.data$NORMALIZED_GFP_MEAN<-as.numeric(stats.data$NORMALIZED_GFP_MEAN)    
-  #stats.data$NORMALIZED_GFP_SD<-as.numeric(stats.data$NORMALIZED_GFP_SD)
 ```
 
+```{r Summary Statistics}
 
+stats.data <- cbind(sample.param,COUNT=NA,FSC_MEDIAN=NA,FSC_MEAN=NA,FSC_SD=NA,FL1_MEDIAN=NA,FL1_MEAN=NA,FL1_SD=NA,NORMALIZED_GFP_MEDIAN=NA,NORMALIZED_GFP_MEAN=NA,NORMALIZED_GFP_SD=NA)
 
+ for(i in 1:length(filteredData)){
+  sample <- sampleNames(filteredData)[i]
+  well <- as.character(pData(filteredData)$Well[i])
+  strain <- as.character(pData(filteredData)$Strain[i])
+  genotype <- as.character(pData(filteredData)$Genotype[i])
+  ploidy <- as.character(pData(filteredData)$Ploidy[i])
+  media <- as.character(pData(filteredData)$Media[i])
+  exp <- as.character(pData(filteredData)$Experiment[i])
+  if(extract.FSC_A == "Yes"){fsc.a <- exprs(filteredData[[i,1]])}
+  if(extract.SSC_A == "Yes"){ssc.a <- exprs(filteredData[[i,2]])}
+  if(extract.FL1_A == "Yes"){fl1.a <- exprs(filteredData[[i,3]])}
+  if(extract.FL2_A == "Yes"){fl2.a <- exprs(filteredData[[i,4]])}
+  if(extract.FL3_A == "Yes"){fl3.a <- exprs(filteredData[[i,5]])}
+  if(extract.FL4_A == "Yes"){fl4.a <- exprs(filteredData[[i,6]])}
+  if(extract.FSC_H == "Yes"){fsc.h <- exprs(filteredData[[i,7]])}
+  if(extract.SSC_H == "Yes"){ssc.h <- exprs(filteredData[[i,8]])}
+  if(extract.FL1_H == "Yes"){fl1.h <- exprs(filteredData[[i,9]])}
+  if(extract.FL2_H == "Yes"){fl2.h <- exprs(filteredData[[i,10]])}
+  if(extract.FL3_H == "Yes"){fl3.h <- exprs(filteredData[[i,11]])}
+  if(extract.FL4_H == "Yes"){fl4.h <- exprs(filteredData[[i,12]])}
+  if(extract.Width == "Yes"){width <- exprs(filteredData[[i,11]])}
+  if(extract.Time == "Yes"){time <- exprs(filteredData[[i,12]])}
+ 
+  stats.data<-(rbind(stats.data,cbind(SAMPLE=sample,WELL=well,STRAIN=strain,GENOTYPE=genotype,PLOIDY=ploidy,MEDIA=media,EXPERIMENT=exp,COUNT=length(fsc.a),FSC_MEDIAN=median(fsc.a),FSC_MEAN=mean(fsc.a),FSC_SD=sd(fsc.a),FL1_MEDIAN=median(fl1.a),FL1_MEAN=mean(fl1.a),FL1_SD=sd(fl1.a),NORMALIZED_GFP_MEDIAN=median(fl1.a/fsc.a),NORMALIZED_GFP_MEAN=mean(fl1.a/fsc.a),NORMALIZED_GFP_SD=sd(fl1.a/fsc.a))))
+}  
 
-
-
-
+stats.data<-stats.data[2:nrow(stats.data),]
+stats.data$COUNT<-as.numeric(stats.data$COUNT)
+stats.data$FSC_MEDIAN<-as.numeric(stats.data$FSC_MEDIAN)
+stats.data$FSC_MEAN<-as.numeric(stats.data$FSC_MEAN)    
+stats.data$FSC_SD<-as.numeric(stats.data$FSC_SD)
+stats.data$FL1_MEDIAN<-as.numeric(stats.data$FL1_MEDIAN)
+stats.data$FL1_MEAN<-as.numeric(stats.data$FL1_MEAN)    
+stats.data$FL1_SD<-as.numeric(stats.data$FL1_SD)
+stats.data$NORMALIZED_GFP_MEDIAN<-as.numeric(stats.data$NORMALIZED_GFP_MEDIAN)
+stats.data$NORMALIZED_GFP_MEAN<-as.numeric(stats.data$NORMALIZED_GFP_MEAN)    
+stats.data$NORMALIZED_GFP_SD<-as.numeric(stats.data$NORMALIZED_GFP_SD)
+```
 
 
 #Plots
 ```{r Desnity Plots}
 ggplot(filtered.data)+
       geom_density(aes(x = FSC.A), colour = "black")+
-      #annotate("text", x=0.01, y=5, label = paste("FSC MEDIAN-",stats.data$FSC_MEDIAN, sep=" "),colour = "black", size=2)+
       theme()+
       labs(y = "Counts", x = "FSC.A") +
       scale_x_log10()+
@@ -380,7 +386,6 @@ ggplot(filtered.data)+
 
 ggplot(filtered.data )+
       geom_density(aes(x = FL1.A), colour = "green")+
-      #annotate("text", x=0.01, y=4, label = paste("FL1 MEDIAN-",stats.data$FL1_MEDIAN, sep=" "),colour = "green", size=2)+
       theme()+
       labs(y = "Counts", x = "FL1.A") +
       scale_x_log10()+
@@ -388,7 +393,6 @@ ggplot(filtered.data )+
 
 ggplot(filtered.data )+
       geom_density(aes(x = FL1.A/FSC.A), colour = "blue")+
-      #annotate("text", x=0.01, y=3,label = paste("FL1/FSC MEDIAN-",signif(stats.data$NORMALIZED_GFP_MEDIAN,4), sep=" "),colour = "blue", size=2)+
       theme()+
       labs(y = "Counts",x = "FL1.A/FSC.A") +
       scale_x_log10()+
@@ -448,40 +452,41 @@ ggplot(stats.data,aes(x=SAMPLE, y = FSC_MEDIAN/baseline.FL1)) +
   theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 6)) +
   scale_x_discrete(labels=stats.data$SAMPLE)+
   ylab("Relative Median FSC")
-barplot(summary.stats$FSC_median/baseline.FSC, ylab="Relative median FSC", las=2, cex.names = 0.5, names.arg=str_sub(sampleNames(flowData),1,11))
-
 ```
 
 #Repupose Barplots into normal plot ourput flow
 ```{r}
-##Subset the data by applying sequential gates##
+ggplot(stats.data,aes(x=SAMPLE, y = singlets/total)) +
+  geom_col() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 6)) +
+  scale_x_discrete(labels=stats.data$SAMPLE)+
+  ylab("Proportion Singlet Cells")
 
+ggplot(stats.data,aes(x=SAMPLE, y = non.debris/total)) +
+  geom_col() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 6)) +
+  scale_x_discrete(labels=stats.data$SAMPLE)+
+  ylab("Proportion Non-debris Cells")
 
-#apply doublet gate to ALL SAMPLES
-flowData.singlets <- Subset(flowData, pg.singlets) 
-fsApply(flowData.singlets, each_col, length)[1:samples.num]
-singlets <- fsApply(flowData.singlets, each_col, length)[1:samples.num]
-barplot(singlets/total, ylim=c(0,1), ylab = "Proportion singlet cells", las=2, cex.names = 0.5, names.arg=sampleNames(flowData))
+ggplot(stats.data,aes(x=SAMPLE, y = flone.neg/non.debris)) +
+  geom_col() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 6)) +
+  scale_x_discrete(labels=stats.data$SAMPLE)+
+  ylab("Proportion Cells with no Flourescense")
 
-#apply debris gates
-filteredData <- Subset(flowData.singlets, pg.nondebris) 
-fsApply(filteredData, each_col, length)[1:samples.num]
-non.debris <- fsApply(filteredData, each_col, length)[1:samples.num]
-barplot(non.debris/total, ylim=c(0,1), ylab = "Proportion nondebris cells", las=2, cex.names = 0.5, names.arg=str_sub(sampleNames(filteredData)))
-
-#this gate defines nonFL1 cells
-flone.neg <- Subset(filteredData, gln.zero) 
-fsApply(flone.neg, each_col, length)[1:samples.num]
-non.gfp <- fsApply(flone.neg, each_col, length)[1:samples.num]
-barplot(flone.neg/non.debris, ylim=c(0,1), ylab = "Proportion cells with no Flourescense", las=2, cex.names = 0.5, names.arg=str_sub(sampleNames(filteredData)))
-
-#this gate defines flouresecent cells
-flone.pos <- Subset(filteredData, gln.one) 
-fsApply(flone.pos, each_col, length)[1:samples.num]
-flone.pos.cells <- fsApply(flone.pos, each_col, length)[1:samples.num]
-barplot(flone.pos.cells/non.debris, ylim=c(0,1), ylab = "Proportion cells with Flourescense", las=2, cex.names = 0.5, names.arg=str_sub(sampleNames(filteredData)))
-
+ggplot(stats.data,aes(x=SAMPLE, y = flone.pos.cells/non.debris)) +
+  geom_col() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 6)) +
+  scale_x_discrete(labels=stats.data$SAMPLE)+
+  ylab("Proportion cells with Flourescense")
 ```
+
+
+#Need to fix variable names for the following Population compenstation, make more generic and or move to a LTEE specific pipeline
 
 ##Population composition
 ```{r}
@@ -507,13 +512,15 @@ colnames(all.data) <- c(colnames(stats.data), "PopProp_0copy", "PopProp_1copy", 
 write.table(all.data, file="DataOut_11302018.csv", row.names=TRUE, quote=F, sep=",")
 ```
 
+
 ** Saving Data **
 ```{r Saves Data}
-if(save.flowset == "Yes"){save(flowData, paste(file.flowset,".Rdata",sep="")}
 
-if(save.df== "Yes"){}
+if(save.flowset == "Yes"){write.flowSet(flowData, folder.flowset)}
 
-if(save.stats== "Yes"){}
+if(save.df== "Yes"){save(filtered.data, paste(file.df,".Rdata",sep="")}
+
+if(save.stats== "Yes"){write.table(stats.data, file= file.stats, row.names=TRUE, quote=F, sep=",")}
 
 ```
 
