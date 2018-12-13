@@ -19,5 +19,6 @@ PLAN
 Grace will do at some point:
 1. make gating more robust (variables for gate vertices rather than hard coded matrix sizes)
 2. make output file name a variable - or make default include datetime
+3. Figure out how to read in first line of df (samplesheet) make those column names, make first row of df NA
 
 

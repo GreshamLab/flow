@@ -256,7 +256,7 @@ xyplot(SSC.A ~ FSC.A, data=dataLGCLTransform, smooth=F,  stat=T, pos=0.5, abs=T,
 #Transfer data into a dataframe
 
 #Move filtered data into a dataframe
-filtered.data <- sample.param
+stats.data <- sample.param
 if(extract.FSC_A == "Yes"){filtered.data<-cbind(filtered.data, FSC.A=NA)}
 if(extract.SSC_A == "Yes"){filtered.data<-cbind(filtered.data, SSC.A=NA)}
 if(extract.FL1_A == "Yes"){filtered.data<-cbind(filtered.data, FL1.A=NA)}
