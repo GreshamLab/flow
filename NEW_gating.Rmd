@@ -11,7 +11,13 @@ This script is intended to read in .fcs files and perform manual gating for
 
 1. single cells 
 2. debris
-3. fluorescence
+3. (optionally) fluorescence
+
+This script requires a .csv samplesheet and user defined variables.
+The user must define which controls are present, and the strain name for these controls.
+**Currently this script only gates fluorescence using the FL1 (GFP) filter**  
+If controls are not present, the script will only gate for singlets and debris. 
+Sometimes gating must be done individually for groups of samples in different conditions (i.e., grown in different media). If so, the user must set the gate_by variable to the column name by which to group the data. There must be a set of controls for each condition.
 
 Gating is performed with untransformed data.
 
@@ -20,27 +26,36 @@ Individual gates are saved in a .Rdata file for use with the Gresham Lab Flow Cy
 
 ```{r}
 #Load libraries
+library(tidyverse)
 library(flowCore)
 library(flowViz)
+```
 
-# This is a function that just makes sure you have a package, or installs it for you without prompting
 
-requireInstall <- function(packageName,isBioconductor=F) {
-  if ( !try(require(packageName,character.only=T)) ) {
-    print(paste0("You don't have ",packageName," accessible, ",
-      "I'm gonna install it"))
-    if (isBioconductor) {
-      source("http://bioconductor.org/biocLite.R")                        
-      biocLite(packageName)                                                 
-    } else {
-      install.packages("packageName", repos = "http://cran.us.r-project.org")
-    }
-  }
-  return(1)
-}
+**Variables and Output Settings**
 
-#Load libraries
-requireInstall("openCyto",isBioconductor=T)
-requireInstall("tidyverse")
+```{r Set user defined variables}
+#working directory
+dir = '.'
+
+#file location of fcs and sampleshhet
+path.data = paste(getwd(),"/",sep="")
+
+#fcs run sample name
+name = "Test"
+
+#samplesheet parameters
+sample.param <- data.frame(SAMPLE=NA, WELL=NA, STRAIN=NA, GENOTYPE=NA, PLOIDY=NA, MEDIA=NA, EXPERIMENT=NA)
+
+#set control names (strain name in samplesheet)
+zero_ctrl = NA
+one_ctrl = NA
+two_ctrl = NA
+
+#set condition to gate by
+gate_by = NA
+
+#set output .Rdata name
+out_rdata = paste(name, 'gates', Sys.Date(), sep = '_')
 ```
 
