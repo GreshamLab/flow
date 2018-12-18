@@ -1,0 +1,46 @@
+---
+title: "R Notebook"
+"Flow Cytometry Gating"
+author: 'G. Avecilla, N. Brandt, S. Lauer, F. Abdul-Rahman, D. Gresham'
+date: '`r Sys.Date()`'
+output: html_document
+runtime: shiny
+---
+
+This script is intended to read in .fcs files and perform manual gating for
+
+1. single cells 
+2. debris
+3. fluorescence
+
+Gating is performed with untransformed data.
+
+Individual gates are saved in a .Rdata file for use with the Gresham Lab Flow Cytometry Analysis.Rmd pipeline.
+
+
+```{r}
+#Load libraries
+library(flowCore)
+library(flowViz)
+
+# This is a function that just makes sure you have a package, or installs it for you without prompting
+
+requireInstall <- function(packageName,isBioconductor=F) {
+  if ( !try(require(packageName,character.only=T)) ) {
+    print(paste0("You don't have ",packageName," accessible, ",
+      "I'm gonna install it"))
+    if (isBioconductor) {
+      source("http://bioconductor.org/biocLite.R")                        
+      biocLite(packageName)                                                 
+    } else {
+      install.packages("packageName", repos = "http://cran.us.r-project.org")
+    }
+  }
+  return(1)
+}
+
+#Load libraries
+requireInstall("openCyto",isBioconductor=T)
+requireInstall("tidyverse")
+```
+
