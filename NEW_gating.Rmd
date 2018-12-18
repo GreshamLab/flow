@@ -25,10 +25,22 @@ Individual gates are saved in a .Rdata file for use with the Gresham Lab Flow Cy
 
 
 ```{r}
+requireInstall <- function(packageName,isBioconductor=F) {
+  if ( !try(require(packageName,character.only=T)) ) {
+    print(paste0("You don't have ",packageName," accessible, ",
+      "I'm gonna install it"))
+    if (isBioconductor) {
+      source("http://bioconductor.org/biocLite.R")                        
+      biocLite(packageName)                                                 
+    } else {
+      install.packages("packageName", repos = "http://cran.us.r-project.org")
+    }
+  }
+  return(1)
+}
 #Load libraries
-library(tidyverse)
-library(flowCore)
-library(flowViz)
+requireInstall('tidyverse')
+requireInstall("openCyto",isBioconductor=T)
 ```
 
 
@@ -44,8 +56,9 @@ path.data = paste(getwd(),"/",sep="")
 #fcs run sample name
 name = "Test"
 
-#samplesheet parameters
-sample.param <- data.frame(SAMPLE=NA, WELL=NA, STRAIN=NA, GENOTYPE=NA, PLOIDY=NA, MEDIA=NA, EXPERIMENT=NA)
+#get/set samplesheet parameters ###DO I NEED THESE???###
+sample.param <- as_tibble(matrix(nrow=0, ncol = ncol(sample.sheet)))
+colnames(sample.param) <- colnames(sample.sheet)
 
 #set control names (strain name in samplesheet)
 zero_ctrl = NA
@@ -57,5 +70,43 @@ gate_by = NA
 
 #set output .Rdata name
 out_rdata = paste(name, 'gates', Sys.Date(), sep = '_')
+```
+
+**Read in Data**
+*.fcs files must be in a folder with a unique name and have an accompanying .csv samplesheet
+The samplesheet name format must be samplesheet_"unique name".csv
+It must contain the following columns, in addition you may add additioanl columns depending on your needs
+
+#This needs to be determined
+Need to define names
+* column1 = Well
+* column2 = Strain
+* column3 = Staining
+* column4 = Media
+* column5 = Userdefined
+
+```{r}
+files<-list.files(paste(path.data,name,"/", sep=""),full.names=TRUE)
+flowData <- read.ncdfFlowSet(files=files, pattern=".fcs", alter.names = TRUE)
+
+
+sample.sheet <- read.csv(paste(path.data,"samplesheet_",name,".csv", sep=""))
+
+#Adds a sample sheet data to the pData of the flowset
+sampleNames(flowData) <- paste(gsub(" ","_",sample.sheet$Strain),"_",sub(" ","_",sample.sheet$Well), sep="")
+
+#Need to determine samplesheet inputs
+pData(flowData)$Well <- sample.sheet$Well
+pData(flowData)$Strain <- sample.sheet$Strain
+pData(flowData)$Genotype <- sample.sheet$Genotype
+pData(flowData)$Ploidy <- sample.sheet$Ploidy
+pData(flowData)$Media <- sample.sheet$Media
+pData(flowData)$Experiment <- sample.sheet$Experiment
+```
+
+**Create singlet gates**
+
+```{r}
+
 ```
 

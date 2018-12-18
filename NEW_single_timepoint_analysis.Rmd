@@ -128,13 +128,14 @@ Need to define names
 * column5 = Userdefined
 
 ```{r}
-
-
 files<-list.files(paste(path.data,name,"/", sep=""),full.names=TRUE)
 flowData <- read.ncdfFlowSet(files=files, pattern=".fcs", alter.names = TRUE)
 
 
 sample.sheet <- read.csv(paste(path.data,"samplesheet_",name,".csv", sep=""))
+#get/set samplesheet parameters
+sample.param <- as_tibble(matrix(nrow=0, ncol = ncol(sample.sheet)))
+colnames(sample.param) <- colnames(sample.sheet)
 
 #Adds a sample sheet data to the pData of the flowset
 
