@@ -332,7 +332,7 @@ for(i in 1:length(filteredData)){
 
 ```{r Summary Statistics}
 
-stats.data <- cbind(sample.param,COUNT=NA,FSC_MEDIAN=NA,FSC_MEAN=NA,FSC_SD=NA,FL1_MEDIAN=NA,FL1_MEAN=NA,FL1_SD=NA,NORMALIZED_GFP_MEDIAN=NA,NORMALIZED_GFP_MEAN=NA,NORMALIZED_GFP_SD=NA)
+filtered.data <- cbind(sample.param,COUNT=NA,FSC_MEDIAN=NA,FSC_MEAN=NA,FSC_SD=NA,FL1_MEDIAN=NA,FL1_MEAN=NA,FL1_SD=NA,NORMALIZED_GFP_MEDIAN=NA,NORMALIZED_GFP_MEAN=NA,NORMALIZED_GFP_SD=NA)
 
  for(i in 1:length(filteredData)){
   sample <- sampleNames(filteredData)[i]
