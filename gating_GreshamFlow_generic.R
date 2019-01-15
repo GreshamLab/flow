@@ -133,9 +133,6 @@ ggcyto(flowData, aes(x = `FSC.A`, y =  `SSC.A`)) + geom_hex(bins = 512) + xlim(0
 #     ggcyto(flowData[c(CONTROLVARIABLE)], aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) + xlim(0,3e6) + ylim(0,5e4) + geom_gate(gate.TYPEOFSIGNAL)
 ######END
 
-=======
->>>>>>> e253181a5c5f433660899d168e8b3bd76a322634
-
 ##Plot the control sample that has non-fluorescing cells
 plot(flowData[[neg.signal]], c('FSC.A','FL1.A'), xlim=c(0,3e6), ylim=c(0,5e4),smooth=T)
 
