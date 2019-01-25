@@ -62,6 +62,7 @@ requireInstall <- function(packageName,isBioconductor=F) {
 
 #Load libraries
 requireInstall("openCyto",isBioconductor=T)
+requireInstall("ggcyto",isBioconductor=T)
 requireInstall("tidyverse")
 ```
 
@@ -100,6 +101,8 @@ extract.Time  <- "No"
 sample.param <- data.frame(SAMPLE=NA, WELL=NA, STRAIN=NA, GENOTYPE=NA, PLOIDY=NA, MEDIA=NA, EXPERIMENT=NA)
 
 #style of output
+#Proportional Data
+save.prop <- "Yes"
 #FlowSet
 save.flowset <- "No"
 #filename
@@ -118,30 +121,42 @@ file.stats <- paste(name, 'stats', Sys.Date(), sep = '_')
 *.fcs files must be in a folder with a unique name and have an accompanying .csv samplesheet
 The samplesheet name format must be samplesheet_"unique name".csv
 It must contain the following columns, in addition you may add additioanl columns depending on your needs
+You must also define the parameters under the pData entry
 
-#This needs to be determined
+#Example Set of Samplesheet Parameters
 Need to define names
 * column1 = Well
 * column2 = Strain
-* column3 = Staining
-* column4 = Media
-* column5 = Userdefined
+* column3 = Genotype
+* column4 = Ploidy
+* column5 = Media
+* column6 = Experiment
+* column7 = Userdefined
+
 
 ```{r}
-files<-list.files(paste(path.data,name,"/", sep=""),full.names=TRUE)
-flowData <- read.ncdfFlowSet(files=files, pattern=".fcs", alter.names = TRUE)
-
-
+#Reads in samplesheet
 sample.sheet <- read.csv(paste(path.data,"samplesheet_",name,".csv", sep=""))
-#get/set samplesheet parameters
+#get/set samplesheet parameters, overwrites default
+#!!!! REMEMBER TO ADJUST THE CODE SO THAT THE PARAMETERS MATCH THOSE THAT YOU ADD TO THE PDATA, TO THE EXTRATCED DATA, AND TO THE DATA 
 sample.param <- as_tibble(matrix(nrow=0, ncol = ncol(sample.sheet)))
 colnames(sample.param) <- colnames(sample.sheet)
 
+#reads in FCS files in order outliined in samplesheet
+files <- paste(path.data,name,"/",sort(factor(list.files(paste(path.data,name,"/", sep=""),full.names=FALSE), levels = paste(sample.sheet$Well,".fcs",sep="" ), ordered=TRUE)),sep="")
+flowData <- read.ncdfFlowSet(files=files, pattern=".fcs", alter.names = TRUE)
+
+
 #Adds a sample sheet data to the pData of the flowset
-
+#Defines the sample name in the two places needed for the flowframe
+#sampleNames must be unique and is used by flowframe to differenate between flowframes
+#pData()$name is used as a defualt value in many of the functions used to display FCS data
 sampleNames(flowData) <- paste(gsub(" ","_",sample.sheet$Strain),"_",sub(" ","_",sample.sheet$Well), sep="")
+pData(flowData)$name <- sampleNames(flowData)
 
-#Need to determine samplesheet inputs
+
+#Additional samplesheet parameters added to the the FlowSet
+#!!!! REMEMBER THAT YOU NEED TO MAKE SURE THESE MATCH YOUR SAMPLESHEET PARAMETERS
 pData(flowData)$Well <- sample.sheet$Well
 pData(flowData)$Strain <- sample.sheet$Strain
 pData(flowData)$Genotype <- sample.sheet$Genotype
@@ -154,6 +169,9 @@ pData(flowData)$Experiment <- sample.sheet$Experiment
 load(file = "gates.RData")
 
 ```
+
+** Base Summary **
+Just checks to make sure you collected the amount of data you thought you did, as well as gathering the actual number of counts in each sample and the number of samples to be used in later chunks.
 
 ```{r flowSet summaries}
 #Check how many cells were counted in each fcs file
@@ -168,8 +186,14 @@ print(samples.num)
 
 
 ** Gating **
+Apply all the gates you created to your data set, if you have more then the 4 generic gates, you'll need to create a new segment of gating code
+EXAMPLE CODE
+START
+  GATEDDATA <- Subset(flowData, GATE) 
+  GATEDDATACOUNTS <- fsApply(GATEDDATA, each_col, length)[1:samples.num]
+  print(GATEDDATACOUNTS)
+END
 
-Gating will require some more work to make it generic. The serperate gating code will need to be revamped to make it compatiable across different types of experimetns and/or generic enough to be modified depending on experiment
 ```{r Application of Gates}
 ##Subset the data by applying sequential gates##
 
@@ -196,32 +220,36 @@ print(flone.pos.cells)
 ```
 
 ** Quality control **
+#Note that you may need to adjust the axis, the bin size, and the number cols and rows, and the number of fluorescent gates in order to produce the best visulatization for your data
 
 ##Gates
 ```{r}
 
 #Singlets gate
-xyplot(FSC.A~FSC.H, data=flowData, xlim=c(0,3e6), ylim=c(0,3e6), filter=pg.singlets,  smooth=F, xbin=1024, stat=T, pos=0.5, abs=T, main = "First flowset - singlets gate")
+ggcyto(flowData, aes(x = `FSC.H`, y =  `FSC.A`)) + geom_hex(bins = 512) +  xlim(0,3e6) + ylim(0,3e6) + geom_gate(pg.singlets) + facet_wrap(~name, ncol = 8, nrow = 4) + ggtitle("First flowset - singlets gate")
 
 #Debris gate
-xyplot(SSC.A ~ FSC.A, data=flowData, displayFilter=TRUE, xlim=c(0,3e6), ylim=c(0,3e5), filter=pg.nondebris, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T,  main = "First flowset - nondebris gate")
+
+ggcyto(flowData, aes(x = `FSC.A`, y =  `SSC.A`)) + geom_hex(bins = 512) +  xlim(0,2e6) + ylim(0,5e5) + geom_gate(pg.nondebris) + facet_wrap(~name, ncol = 8, nrow = 4) + ggtitle("First flowset - nondebris gate")
 
 #Non-fluorescent population gate
-xyplot(FL1.A~FSC.A, data=flowData, displayFilter=TRUE, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.nonflone, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T,  main = "First flowset - non GFP gate")
 
-#Fluorescent population gate
-xyplot(FL1.A~FSC.A, data=flowData, displayFilter=TRUE, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.flone, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T, main = "First flowset - GFP gate")
+ggcyto(flowData, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) +  xlim(0,1e6) + ylim(0,3e5) + geom_gate(fl1gate.0) + facet_wrap(~name, ncol = 8, nrow = 4) + ggtitle("First flowset - non GFP gate")
 
-#High fluorescing gate
-xyplot(FL1.A~FSC.A, data=flowData, xlim=c(0,5e6), ylim=c(0,5e4), filter=pg.hi.flone, smooth=F, xbin=1024, stat=T, pos=0.5, abs=T,  main = "First flowset - high GFP gate")
+#1 copy Fluorescent population gate
+ggcyto(flowData, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) +  xlim(0,1e6) + ylim(0,3e5) + geom_gate(fl1gate.1) + facet_wrap(~name, ncol = 8, nrow = 4) + ggtitle("First flowset - GFP gate")
 
+#2 copy fluorescing gate
+ggcyto(flowData, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) +  xlim(0,1e6) + ylim(0,3e5) + geom_gate(fl1gate.2) + facet_wrap(~name, ncol = 8, nrow = 4) + ggtitle("First flowset - high GFP gate")
+
+#3+ copy fluorescing gate
+ggcyto(flowData, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) +  xlim(0,1e6) + ylim(0,3e5) + geom_gate(fl1gate.3) + facet_wrap(~name, ncol = 8, nrow = 4) + ggtitle("First flowset - high GFP gate")
 
 ```
 
 ##Data transformation for visualization
 ```{r}
 #In order to look at QC plots the data is transformed using the logicle transform, which is a log transform for high values that transitions to a linear transformation near zero values 
-
 #This is simply for visualization purposes
 
 lgcl <- logicleTransform(w = 0.5, t= 10000, m=4.5) #the parameters w,t, and m define the transformation parameters
@@ -229,35 +257,34 @@ lgcl <- logicleTransform(w = 0.5, t= 10000, m=4.5) #the parameters w,t, and m de
 #Dataset 1 tranformation applied to every channel except width and time
 dataLGCLTransform <- transform(filteredData, 'FSC.A' = lgcl(`FSC.A`), 'SSC.A' =lgcl(`SSC.A`), 'FL1.A' = lgcl(`FL1.A`), 'FL2.A' = lgcl(`FL2.A`), 'FL3.A' = lgcl(`FL3.A`), 'FL4.A' = lgcl(`FL4.A`),'FSC.H' = lgcl(`FSC.H`),'SSC.H' = lgcl(`SSC.H`),'FL1.H' = lgcl(`FL1.H`),'FL2.H' = lgcl(`FL2.H`),'FL3.H' = lgcl(`FL3.H`),'FL4.H' = lgcl(`FL4.H`)) 
 
-
 ```
 
 ##Effect of time
 ```{r}
 #The effect of time on signal (of which there shouldn't be any)
-
-xyplot(FL1.A ~ Time, data=dataLGCLTransform, smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(150,250), main = sampleNames(filteredData))
+ggcyto(dataLGCLTransform, aes(x = `Time`, y =  `FL1.A`)) + geom_hex(bins = 128) +  xlim(150,250) + ylim(0,8)+facet_wrap(~name, ncol = 8, nrow = 4)
 ```
 
 ##Plots of FL1 versus FSC
 ```{r}
-xyplot(FL1.A ~ FSC.A, data=dataLGCLTransform, smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(4,8), sampleNames(filteredData))
+ggcyto(dataLGCLTransform, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) +  xlim(4,8) + ylim(2,6) + facet_wrap(~name, ncol = 8, nrow = 4)
 ```
 
 ##Plots of FSC versus SSC
 ```{r}
-xyplot(SSC.A ~ FSC.A, data=dataLGCLTransform, smooth=F,  stat=T, pos=0.5, abs=T, xlim=c(4,8), ylim=c(4,8), sampleNames(filteredData))
+ggcyto(dataLGCLTransform, aes(x = `FSC.A`, y =  `SSC.A`)) + geom_hex(bins = 512) +  xlim(4,8) + ylim(4,8)+facet_wrap(~name, ncol = 8, nrow = 4)
 ```
 
 
-
-
+**Data Extraction**
+Extracts the data you want based on your selections in the user defined variables
+Also remember you need to make sure your samplesheet paramters match with the parameters you wanted in your extracted data file
 
 ```{r Data extraction}
-#Transfer data into a dataframe
 
 #Move filtered data into a dataframe
-stats.data <- sample.param
+#Create the empty data frame
+filtered.data <- sample.param
 if(extract.FSC_A == "Yes"){filtered.data<-cbind(filtered.data, FSC.A=NA)}
 if(extract.SSC_A == "Yes"){filtered.data<-cbind(filtered.data, SSC.A=NA)}
 if(extract.FL1_A == "Yes"){filtered.data<-cbind(filtered.data, FL1.A=NA)}
@@ -273,6 +300,8 @@ if(extract.FL4_H == "Yes"){filtered.data<-cbind(filtered.data, FL4.H=NA)}
 if(extract.Width == "Yes"){filtered.data<-cbind(filtered.data, Width=NA)}
 if(extract.Time == "Yes"){filtered.data<-cbind(filtered.data, Time=NA)}
 
+#Fill the data frame with the data you want
+#!!!! REMEMBER THAT YOU NEED TO MAKE SURE YOUR SAMPLESHEET PARAMATERS ARE INCLUDED IN THIS CODE
 for(i in 1:length(filteredData)){
   sample <- sampleNames(filteredData)[i]
   well <- as.character(pData(filteredData)$Well[i])
@@ -331,10 +360,17 @@ for(i in 1:length(filteredData)){
   if(extract.Time == "Yes"){filtered.data$Time<-as.numeric(filtered.data$Time)}
 ```
 
+**Summary Statistics**
+Creates a set od statistics that summarize your data. You will need to make sure to adjust the code depending on the data and statistics you want summarized
+Also remember you need to make sure your samplesheet paramters match with the parameters you wanted in your extracted data file
+
 ```{r Summary Statistics}
+#Create the empty data frame
+# !!!! REMEMBER YOU MAY NEED TO ADD OR REMOVE STATISTIC COLUMNS BASED ON WHAT YOUR NEEDS ARE !!!!
+stats.data <- cbind(sample.param,COUNT=NA,FSC_MEDIAN=NA,FSC_MEAN=NA,FSC_SD=NA,FL1_MEDIAN=NA,FL1_MEAN=NA,FL1_SD=NA,NORMALIZED_GFP_MEDIAN=NA,NORMALIZED_GFP_MEAN=NA,NORMALIZED_GFP_SD=NA)
 
-filtered.data <- cbind(sample.param,COUNT=NA,FSC_MEDIAN=NA,FSC_MEAN=NA,FSC_SD=NA,FL1_MEDIAN=NA,FL1_MEAN=NA,FL1_SD=NA,NORMALIZED_GFP_MEDIAN=NA,NORMALIZED_GFP_MEAN=NA,NORMALIZED_GFP_SD=NA)
-
+#Fill the data frame with the data you want
+#!!!! REMEMBER THAT YOU NEED TO MAKE SURE YOUR SAMPLESHEET PARAMATERS ARE INCLUDED IN THIS CODE AND THAT YOU MAY NEED TO ADD OR REMOVE STATISTIC COLUMNS BASED ON WHAT YOUR NEEDS ARE !!!!
  for(i in 1:length(filteredData)){
   sample <- sampleNames(filteredData)[i]
   well <- as.character(pData(filteredData)$Well[i])
@@ -359,8 +395,9 @@ filtered.data <- cbind(sample.param,COUNT=NA,FSC_MEDIAN=NA,FSC_MEAN=NA,FSC_SD=NA
   if(extract.Time == "Yes"){time <- exprs(filteredData[[i,12]])}
  
   stats.data<-(rbind(stats.data,cbind(SAMPLE=sample,WELL=well,STRAIN=strain,GENOTYPE=genotype,PLOIDY=ploidy,MEDIA=media,EXPERIMENT=exp,COUNT=length(fsc.a),FSC_MEDIAN=median(fsc.a),FSC_MEAN=mean(fsc.a),FSC_SD=sd(fsc.a),FL1_MEDIAN=median(fl1.a),FL1_MEAN=mean(fl1.a),FL1_SD=sd(fl1.a),NORMALIZED_GFP_MEDIAN=median(fl1.a/fsc.a),NORMALIZED_GFP_MEAN=mean(fl1.a/fsc.a),NORMALIZED_GFP_SD=sd(fl1.a/fsc.a))))
-}  
+ }  
 
+#Cleans up DataFrames
 stats.data<-stats.data[2:nrow(stats.data),]
 stats.data$COUNT<-as.numeric(stats.data$COUNT)
 stats.data$FSC_MEDIAN<-as.numeric(stats.data$FSC_MEDIAN)
@@ -437,7 +474,7 @@ ggplot(filtered.data, aes(SAMPLE,FL1.A/FSC.A)) +
 ```{r Quantitation of Signal}
 
 ###FL1###
-baseline.FL1 <- stats.data$FL1_MEDIAN[2] #MUST REPLACE WITH YOUR FL1 ChannelCONTROL!!
+baseline.FL1 <- stats.data$FL1_MEDIAN[] #MUST REPLACE WITH YOUR FL1 ChannelCONTROL!!
 ggplot(stats.data,aes(x=SAMPLE, y = FL1_MEDIAN/baseline.FL1)) +
   geom_col() +
   theme_bw() +
@@ -486,43 +523,47 @@ ggplot(stats.data,aes(x=SAMPLE, y = flone.pos.cells/non.debris)) +
   ylab("Proportion cells with Flourescense")
 ```
 
+##Population Composition
+#Currently Designed for LTEE experiments
+#You may need to remove or modify this based on your experiments needs
+```{r Population composition}
 
-#Need to fix variable names for the following Population compenstation, make more generic and or move to a LTEE specific pipeline
+PopProportion_zeroGFP <- flone.neg.cells/non.debris
+PopProportion_oneGFP <- flone.one.cells/non.debris
+PopProportion_twoGFP <- flone.two.cells/non.debris
+PopProportion_threeGFP <- flone.three.cells/non.debris
+prop.data <- cbind(stats.data, PopProportion_zeroGFP, PopProportion_oneGFP, PopProportion_twoGFP, PopProportion_threeGFP, non.debris)
+colnames(prop.data) <- c(colnames(stats.data), "PopProp_0copy", "PopProp_1copy", "PopProp_2copy", "PopProp_3plus", "CELL COUNT")
 
-##Population composition
-```{r}
-###GLUTAMINE###
-pop.composition <- rbind(non.gfp/non.debris,gfp.one.cells/non.debris,gfp.two.cells/non.debris, gfp.thr.cells/non.debris)
-barplot(pop.composition, ylab="Proportion of population", legend=c("No GFP", "One copy GFP", "Two copy GFP", "Three+ copy GFP"),las=2, ylim=c(0,1), col=c("black", "grey", "light green", "dark green"), cex.names = 0.5,names.arg=str_sub(sampleNames(flowData),1,11))
-
-
-```
-
-##Extract data for further processing
-```{r Extract data for further processing}
-
-PopProportion_zeroGFP <- non.gfp/non.debris
-PopProportion_oneGFP <- gfp.one.cells/non.debris
-PopProportion_twoGFP <- gfp.two.cells/non.debris
-PopProportion_threeGFP <- gfp.thr.cells/non.debris
-all.data <- cbind(stats.data, PopProportion_zeroGFP, PopProportion_oneGFP, PopProportion_twoGFP, PopProportion_threeGFP, non.debris)
-colnames(all.data) <- c(colnames(stats.data), "PopProp_0copy", "PopProp_1copy", "PopProp_2copy", "PopProp_3plus", "Cells counted")
-
-
-#Save the current dataframe
-write.table(all.data, file="DataOut_11302018.csv", row.names=TRUE, quote=F, sep=",")
+prop.data %>% 
+  select(SAMPLE,PopProp_3plus,PopProp_0copy,PopProp_1copy,PopProp_2copy) %>% 
+  gather(key="GFP_NUMBER",value="SIGNAL",-SAMPLE) %>%
+  ggplot(aes(fill=factor(GFP_NUMBER, levels = c("PopProp_3plus", "PopProp_2copy", "PopProp_1copy", "PopProp_0copy")), y=SIGNAL, x=SAMPLE)) +
+    geom_bar(stat="identity") +
+    scale_fill_manual(values=c("dark green","light green","grey","black")) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 6)) +
+    ylab("Proportion cells with Flourescense") +
+    theme(legend.title=element_blank())
 ```
 
 
 ** Saving Data **
 ```{r Saves Data}
 
+#Resave the flowset, this will now include the data from your samplesheet added into the pDATA
+#You can also choose to save only gated data by adjusted what flowset you save
+#Default is ungated samples
 if(save.flowset == "Yes"){write.flowSet(flowData, folder.flowset)}
 
-if(save.df== "Yes"){save(filtered.data, paste(file.df,".Rdata",sep="")}
+#The data extracted from the flowset
+if(save.df == "Yes"){save(filtered.data, file=paste(file.df,".Rdata",sep=""))}
 
-if(save.stats== "Yes"){write.table(stats.data, file= file.stats, row.names=TRUE, quote=F, sep=",")}
+#The summarized data extracted from the flowset
+if(save.stats== "Yes"){write.csv(stats.data, file= paste(file.stats,".csv",sep=""), row.names=TRUE quote=F)}
 
+#The population proportion data from your flowset
+if(save.prop == "Yes"){write.csv(prop.data, file=paste(file.prop,".csv",sep=""), row.names=TRUE quote=F)}
 ```
 
 
