@@ -35,6 +35,8 @@
 library(flowCore)
 library(flowViz)
 library(ggcyto)
+library(ggforce)
+
 
 
 #Read in the data
@@ -45,10 +47,12 @@ library(ggcyto)
 dir = '.'
 
 #file location
-path.data = 
+#Used for data files being outside of home directory
+path.data = ""
 
 #set name of run to create gates for
-name <- 
+#Should be the same name as the folder that your .fcs files are in
+name <- "Test"
 
 #load sample sheet
 sample.sheet <- read.csv(paste(path.data,"samplesheet_",name,".csv", sep=""))
@@ -63,9 +67,9 @@ sampleNames(flowData) <- paste(gsub(" ","_",sample.sheet$Strain),"_",sub(" ","_"
 
 #set controls on which to gate on
 #these are some of the base types of controls you may want for each channel you are taking measurements from 
-neg.signal <- 
-pos.signal <- 
-hi.signal <-
+neg.signal <- 1
+pos.signal <- 2
+hi.signal <- 6
 
 
 ##############################
@@ -82,7 +86,7 @@ gm.1[,1] <- singlet.gate$x
 gm.1[,2] <- singlet.gate$y
 pg.singlets <- polygonGate(filterId="singlets",.gate=gm.1)
 
-ggcyto(flowData[zerocopy], aes(x = `FSC.H`, y =  `FSC.A`)) + geom_hex(bins = 512) + geom_gate(pg.singlets)
+ggcyto(flowData[neg.signal], aes(x = `FSC.H`, y =  `FSC.A`)) + geom_hex(bins = 512) + geom_gate(pg.singlets)
 
 #Look at the gating on the controls
 ggcyto(flowData[c(zerocopy,onecopy,twocopy)], aes(x = `FSC.H`, y =  `FSC.A`)) + geom_hex(bins = 512) + xlim(0,3e6) + ylim(0,3e6) + geom_gate(pg.singlets) + facet_wrap_paginate(~name, ncol = 2, nrow = 2, page = 1)
@@ -177,7 +181,7 @@ ggcyto(flowData, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) + xlim(0
 
 
 ##Draw a new gate for gating gate for normally flourescent cells
-plot(flowData[[pos.signal]], c('FSC.A','FL1.A'), xlim=c(0,3e6), ylim=c(0,5e5),smooth=T)
+plot(flowData[[pos.signal]], c('FSC.A','FL1.A'), xlim=c(0,3e6), ylim=c(0,4e4),smooth=T)
 polygon(negsignal.gate)
 
 possignal.gate <- locator(100, type='l', col='blue')
@@ -188,7 +192,7 @@ gm.4[,2] <- possignal.gate$y
 gate.pos <- polygonGate(filterId="positivesignal",.gate=gm.4)
 
 ##Overlay and check the new gate with the old gate
-ggcyto(flowData[pos.signal], aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) + geom_gate(neg.gate) + geom_gate(gate.pos)
+ggcyto(flowData[pos.signal], aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) + geom_gate(gate.neg) + geom_gate(gate.pos)
 
 #Look at the gating on all the controls
 ggcyto(flowData[c(neg.signal,pos.signal,hi.signal)], aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) + xlim(0,3e6) + ylim(0,5e4) + geom_gate(gate.neg) + geom_gate(gate.pos) + facet_wrap_paginate(~name, ncol = 2, nrow = 2, page = 1)
@@ -235,4 +239,4 @@ ggcyto(flowData, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) + xlim(0
 #Save the gate information to an R data file
 #Remeber to add any additional gate variables to your save file
 rm(list=c("flowData")) 
-save(pg.singlets, pg.nondebris, gate.neg, gate.pos, gate.hi file=paste(name,"_gates_",Sys.Date(),".Rdata",sep=""))
+save(pg.singlets, pg.nondebris, gate.neg, gate.pos, gate.hi, file=paste(name,"_gates_",Sys.Date(),".Rdata",sep=""))

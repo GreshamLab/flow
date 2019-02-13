@@ -139,8 +139,9 @@ Need to define names
 sample.sheet <- read.csv(paste(path.data,"samplesheet_",name,".csv", sep=""))
 #get/set samplesheet parameters, overwrites default
 #!!!! REMEMBER TO ADJUST THE CODE SO THAT THE PARAMETERS MATCH THOSE THAT YOU ADD TO THE PDATA, TO THE EXTRATCED DATA, AND TO THE DATA 
-sample.param <- as_tibble(matrix(nrow=0, ncol = ncol(sample.sheet)))
-colnames(sample.param) <- colnames(sample.sheet)
+
+#sample.param <- as_tibble(matrix(nrow=0, ncol = ncol(sample.sheet)))
+#colnames(sample.param) <- colnames(sample.sheet)
 
 #reads in FCS files in order outliined in samplesheet
 files <- paste(path.data,name,"/",sort(factor(list.files(paste(path.data,name,"/", sep=""),full.names=FALSE), levels = paste(sample.sheet$Well,".fcs",sep="" ), ordered=TRUE)),sep="")
@@ -208,12 +209,12 @@ non.debris <- fsApply(filteredData, each_col, length)[1:samples.num]
 print(non.debris)
 
 #this gate defines nonFL1 cells
-flone.neg <- Subset(filteredData, pg.nonflone) 
+flone.neg <- Subset(filteredData, gate.neg) 
 flone.neg.cells <- fsApply(flone.neg, each_col, length)[1:samples.num]
 print(flone.neg.cells)
 
 #this gate defines flouresecent cells
-flone.pos <- Subset(filteredData, pg.flone) 
+flone.pos <- Subset(filteredData, gate.pos) 
 flone.pos.cells <- fsApply(flone.pos, each_col, length)[1:samples.num]
 print(flone.pos.cells)
 
