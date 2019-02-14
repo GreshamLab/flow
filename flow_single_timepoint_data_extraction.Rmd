@@ -70,7 +70,6 @@ requireInstall("tidyverse")
 **Variables and Output Settings**
 Variables for the user to set can be found in chunk one. These include both required variables (e.g., working directory), and optional variables (e.g., style of ouput). There are some defaults for these variables.
 
-
 ```{r User Defined Variables}
 #working directory
 dir = '.'

@@ -2,7 +2,7 @@
 #gating.R       
 #
 #started: 01/07/2016
-#modified: 1/15/2019
+#modified: 2/14/2019
 #
 #author1: G Avecilla, S Lauer, D Gresham
 #author2: N Brandt

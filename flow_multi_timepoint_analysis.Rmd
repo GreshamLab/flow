@@ -4,8 +4,6 @@ date: "`r Sys.Date()`"
 output: html_notebook
 ---
 
-
-
 ## R Markdown
 
 This is the code to generate figures about CNV dynamics from aggregated flow cyto data.
