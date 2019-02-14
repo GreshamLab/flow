@@ -1,9 +1,7 @@
 ---
 title: "Gresham Lab Flow Cytometry Multi Timepoint Analysis"
 date: "`r Sys.Date()`"
-output:
-  html_document:
-    df_print: paged
+output: html_notebook
 ---
 
 
@@ -113,6 +111,8 @@ file.stats <- paste(name,"_stats_alldata_",Sys.Date(),sep="")
 
 
 ```{r Read or load in  Data}
+list.files(path=dir, pattern = “*_props.csv”)
+
 
 #Read in and Combine Proportional Data
 if(read.prop=="Yes"){
