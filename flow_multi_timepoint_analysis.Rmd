@@ -39,11 +39,11 @@ This script combines the data from multiple flow cyto runs and can save the comb
 ```{r Load libs}
 
 #Load libraries
+library(openCyto)
 library(ggcyto)
 library(tidyverse)
 library(ggjoy)
 library(ggforce)
-
 ```
 
 
@@ -52,32 +52,13 @@ library(ggforce)
 dir = '.'
 
 #file location
-#path.data = "/Users/Brandt/Google Drive/MiniStatRun_10_2018/2019-01-24/"
-path.data = "/Users/nathanbrandt/Google Drive/MiniStatRun_10_2018/"
+path.data = "/Users/Brandt/Google Drive/MiniStatRun_10_2018/2019-01-24/"
 
-list.folders <- c("LTEE_mCitrine_GAP1_Variants_T00", 
-                  # "LTEE_mCitrine_GAP1_Variants_T06", 
-                  # "LTEE_mCitrine_GAP1_Variants_T07", 
-                  # "LTEE_mCitrine_GAP1_Variants_T08.3", 
-                  # #"LTEE_mCitrine_GAP1_Variants_T11.1", 
-                  # "LTEE_mCitrine_GAP1_Variants_T11.2", 
-                  # #"LTEE_mCitrine_GAP1_Variants_T13.1", 
-                  # "LTEE_mCitrine_GAP1_Variants_T13.2", 
-                  # "LTEE_mCitrine_GAP1_Variants_T14", 
-                  # "LTEE_mCitrine_GAP1_Variants_T15", 
-                  # "LTEE_mCitrine_GAP1_Variants_T18", 
-                  # "LTEE_mCitrine_GAP1_Variants_T22", 
-                  # "LTEE_mCitrine_GAP1_Variants_T25", 
-                  # "LTEE_mCitrine_GAP1_Variants_T27", 
-                  # "LTEE_mCitrine_GAP1_Variants_T29", 
-                  "LTEE_mCitrine_GAP1_Variants_T34")
 
 #name of the experiment
 name <- "LTEE_mCitrine_GAP1_Variants"
 
 #date of extracted data to use
-date <- "2019-01-24"
-
 
 #style of input
 #Read in and combine individual Proportional Data
@@ -91,34 +72,42 @@ read.stats <- "Yes"
 save.prop <- "Yes"
 #Save combined DataFrame - Individual data points
 save.df <- "Yes"
-#Load combined Experiment Statistics
+#Save combined Experiment Statistics
 save.stats <- "Yes"
 
+#Loading
+#Date of combined data files you wish to load
+date <- "2019-02-14"
 #Load combined Proportional Data
-load.prop <- "No"
+load.prop <- "Yes"
 #Load combined DataFrame - Individual data points
-load.df <- "No"
+load.df <- "Yes"
 #Load combined Experiment Statistics
-load.stats <- "No"
+load.stats <- "Yes"
 
 
 #filenames
-file.prop <- paste(name,"_prop_alldata_",Sys.Date(),sep="")
-file.df <- paste(name,"_df_alldata_",Sys.Date(),sep="")
-file.stats <- paste(name,"_stats_alldata_",Sys.Date(),sep="")
+file.prop <- paste(name,"_propAllData_",Sys.Date(),sep="")
+file.df <- paste(name,"_dfAllData_",Sys.Date(),sep="")
+file.stats <- paste(name,"_statsAllData_",Sys.Date(),sep="")
 
 ```
 
 
 ```{r Read or load in  Data}
-list.files(path=dir, pattern = “*_props.csv”)
 
 
-#Read in and Combine Proportional Data
+
+#Read in and Combine all Proportional Data files found in path
+
+#Creates a list of proportional data files, identifed by have _prop_ and .csv in the file name
+prop.list <- list.files(path=path.data, pattern = c("_prop_",".csv"))
+
+#Load each file and combine them
 if(read.prop=="Yes"){
-  data.prop <- read_csv(paste(path.data,date,list.folders[1],"_prop_",date,".csv", sep=""))
-  for(i in 2:length(list.folders)){
-    data.prop_temp <- read_csv(paste(path.data,data,list.folders[i],"_prop_",date,".csv", sep=""))
+  data.prop <- read_csv(paste(path.data,prop.list[1], sep=""))
+  for(i in 2:length(prop.list)){
+    data.prop_temp <- read_csv(paste(path.data,prop.list[i], sep=""))
     data.prop<- bind_rows(data.prop, data.prop_temp)
   }
   data.prop <- select(data.prop,-c(1))
@@ -127,12 +116,17 @@ if(save.prop=="Yes"){
   write.csv(data.prop, file= paste(file.prop,".csv",sep=""), row.names=TRUE, quote=F)
 }
 
-#Read in and Combine data frames
+#Read in and Combine data frames found in path
+
+#Creates a list of data frames in Rdata files, identifed by have _ddf_ and .Rdata in the file name
+df.list <- list.files(path=path.data, pattern = c("_df_",".Rdata"))
+
+#Load each file and combine them
 if(read.df=="Yes"){
-  load(paste(path.data,list.folders[1],"_df_",date,".Rdata",sep=""))
+  load(paste(path.data,df.list[1], sep=""))
   data.df <- filtered.data
-  for(i in 2:length(list.folders)) {
-    load(paste(path.data,list.folders[i],"_df_",date,".Rdata",sep=""))
+  for(i in 2:length(df.list)) {
+    load(paste(path.data,df.list[i], sep=""))
     data.df_temp<-filtered.data
     data.df <- rbind(data.df, data.df_temp)
   }
@@ -141,11 +135,16 @@ if(save.df=="Yes"){
   save(data.df, file=paste(file.df,".Rdata",sep=""))
 }
 
-#Read in and Combine Statistical Data
+#Read in and Combine Statistical Data in path
+
+#Creates a list of Statistical data files, identifed by have _stats_ and .csv in the file name
+stats.list <- list.files(path=path.data, pattern = c("_stats_",".Rdata"))
+
+#Load each file and combine them
 if(read.stats=="Yes"){
-  data.stats <- read_csv(paste(path.data,list.folders[1],"_stats_",date,".csv", sep=""))
-  for(i in 2:length(list.folders)){
-    data.stats_temp <- read_csv(paste(path.data,list.folders[i],"_stats_",date,".csv", sep=""))
+  data.stats <- read_csv(paste(path.data,stats.list[1], sep=""))
+  for(i in 2:length(stats.list)){
+    data.stats_temp <- read_csv(paste(path.data,stats.list[i], sep=""))
     data.stats<- bind_rows(data.stats, data.stats_temp)
   }
   data.stats <- select(data.stats,-c(1))
@@ -157,15 +156,15 @@ if(save.stats=="Yes"){
 #Loading Data
 #Read in and Combine Proportional Data
 if(load.prop=="Yes"){
-  alldata.prop <- read_csv(paste(path.data,name,"_prop_alldata_",date,".csv",sep=""))
+  alldata.prop <- read_csv(paste(path.data,name,"_propAllData_",date,".csv",sep=""))
 }
 #Read in and Combine data frames
 if(load.df=="Yes"){
-  load(paste(path.data,name,"_df_alldata_",date,".Rdata",sep=""))
+  load(paste(path.data,name,"_dfAllData_",date,".Rdata",sep=""))
 }
 #Read in and Combine Statistical Data
 if(load.stats=="Yes"){
-  alldata.stats <- read_csv(paste(path.data,name,"_stats_alldata_",date,".csv",sep=""))
+  alldata.stats <- read_csv(paste(path.data,name,"_statsAllData_",date,".csv",sep=""))
 }
 
 
