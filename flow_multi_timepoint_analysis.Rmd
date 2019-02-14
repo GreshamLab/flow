@@ -61,13 +61,29 @@ name <- "LTEE_mCitrine_GAP1_Variants"
 #date of extracted data to use
 
 #style of input
+#Reading Data in
 #Read in and combine individual Proportional Data
-read.prop <- "Yes"
+read.prop <- "No"
 #Read in and combine individual DataFrames 
-read.df <- "Yes"
+read.df <- "No"
 #Read in and combine individual Experiment Statistics
-read.stats <- "Yes"
+read.stats <- "No"
 
+#Appending Data to previous data
+#use the date to identify the combined data file you wish to append a new file to
+appendto.date <- "2019-02-14"
+#Use the Timepoint identifier and the date to identify what file you wish to add to your old file
+append.timepoint <- "T00" 
+append.date <- "2019-01-24"
+
+#Read in combined Proportional data file and append a single Proportional Data timepoint
+append.prop <- "Yes"
+#Read in combined DataFrame file and append a single DataFrame timepoint
+append.df <- "Yes"
+#Read in combined Statistics data file and append a single Statistics Data timepoint
+append.stats <- "Yes"
+
+#Saving curent Files
 #Save combined Proportional Data
 save.prop <- "Yes"
 #Save combined DataFrame - Individual data points
@@ -77,13 +93,13 @@ save.stats <- "Yes"
 
 #Loading
 #Date of combined data files you wish to load
-date <- "2019-02-14"
+load.date <- ""
 #Load combined Proportional Data
-load.prop <- "Yes"
+load.prop <- "No"
 #Load combined DataFrame - Individual data points
-load.df <- "Yes"
+load.df <- "No"
 #Load combined Experiment Statistics
-load.stats <- "Yes"
+load.stats <- "No"
 
 
 #filenames
@@ -97,11 +113,12 @@ file.stats <- paste(name,"_statsAllData_",Sys.Date(),sep="")
 ```{r Read or load in  Data}
 
 
+#Reading in Data
 
 #Read in and Combine all Proportional Data files found in path
 
 #Creates a list of proportional data files, identifed by have _prop_ and .csv in the file name
-prop.list <- list.files(path=path.data, pattern = c("_prop_",".csv"))
+prop.list <- list.files(path=path.data, pattern = "_prop_[[:print:]]*.csv")
 
 #Load each file and combine them
 if(read.prop=="Yes"){
@@ -112,14 +129,11 @@ if(read.prop=="Yes"){
   }
   data.prop <- select(data.prop,-c(1))
 }
-if(save.prop=="Yes"){
-  write.csv(data.prop, file= paste(file.prop,".csv",sep=""), row.names=TRUE, quote=F)
-}
 
 #Read in and Combine data frames found in path
 
 #Creates a list of data frames in Rdata files, identifed by have _ddf_ and .Rdata in the file name
-df.list <- list.files(path=path.data, pattern = c("_df_",".Rdata"))
+df.list <- list.files(path=path.data, pattern = "_df_[[:print:]]*.Rdata")
 
 #Load each file and combine them
 if(read.df=="Yes"){
@@ -131,14 +145,11 @@ if(read.df=="Yes"){
     data.df <- rbind(data.df, data.df_temp)
   }
 }
-if(save.df=="Yes"){
-  save(data.df, file=paste(file.df,".Rdata",sep=""))
-}
 
 #Read in and Combine Statistical Data in path
 
 #Creates a list of Statistical data files, identifed by have _stats_ and .csv in the file name
-stats.list <- list.files(path=path.data, pattern = c("_stats_",".Rdata"))
+stats.list <- list.files(path=path.data, pattern = "_stats_[[:print:]]*.csv" )
 
 #Load each file and combine them
 if(read.stats=="Yes"){
@@ -149,25 +160,68 @@ if(read.stats=="Yes"){
   }
   data.stats <- select(data.stats,-c(1))
 } 
+
+
+#Append Data - Requires a previously saved all data file as well as a new timepoint
+
+#Read in and add new Proportinal timepoint
+if(append.prop=="Yes"){
+  data.prop <- read_csv(paste(path.data,name,"_propAllData_",appendto.date,".csv",sep=""))
+  
+  data.prop_temp <- read_csv(paste(path.data,list.files(path=path.data, pattern =paste(append.timepoint,"_prop_",append.date,sep="")), sep=""))
+  data.prop<- bind_rows(data.prop, data.prop_temp)
+  
+  data.stats <- select(data.stats,-c(1))
+}
+#Read in and and add new data frames
+if(append.df=="Yes"){
+  load(paste(path.data,name,"_dfAllData_",appendto.date,".Rdata",sep=""))
+  data.df <- filtered.data
+  
+  load(paste(path.data,list.files(path=path.data, pattern =paste(append.timepoint,"_df_",append.date,sep="")), sep=""))
+  data.df_temp<-filtered.data
+  data.df <- rbind(data.df, data.df_temp)
+}
+#Read in and add new Statistical Data timepoint
+if(append.stats=="Yes"){
+  data.stats <- read_csv(paste(path.data,name,"_statsAllData_",appendto.date,".csv",sep=""))
+  
+  data.stats_temp <- read_csv(paste(path.data,list.files(path=path.data, pattern =paste(append.timepoint,"_stats_",append.date,sep="")), sep=""))
+  data.stats<- bind_rows(data.stats, data.stats_temp)
+  
+  data.stats <- select(data.stats,-c(1))
+}
+
+
+#Saving Current Data
+
+#Save Proportional Data
+if(save.prop=="Yes"){
+  write.csv(data.prop, file= paste(path.data,file.prop,".csv",sep=""), row.names=TRUE, quote=F)
+}
+#Save dataframes
+if(save.df=="Yes"){
+  save(data.df, file=paste(path.data,file.df,".Rdata",sep=""))
+}
+#Save Statistical Data
 if(save.stats=="Yes"){
-  write.csv(data.stats, file= paste(file.stats,".csv",sep=""), row.names=TRUE, quote=F)
+  write.csv(data.stats, file= paste(path.data,file.stats,".csv",sep=""), row.names=TRUE, quote=F)
 }
 
 #Loading Data
+
 #Read in and Combine Proportional Data
 if(load.prop=="Yes"){
-  alldata.prop <- read_csv(paste(path.data,name,"_propAllData_",date,".csv",sep=""))
+  data.prop <- read_csv(paste(path.data,name,"_propAllData_",load.date,".csv",sep=""))
 }
 #Read in and Combine data frames
 if(load.df=="Yes"){
-  load(paste(path.data,name,"_dfAllData_",date,".Rdata",sep=""))
+  load(paste(path.data,name,"_dfAllData_",load.date,".Rdata",sep=""))
 }
 #Read in and Combine Statistical Data
 if(load.stats=="Yes"){
-  alldata.stats <- read_csv(paste(path.data,name,"_statsAllData_",date,".csv",sep=""))
+  data.stats <- read_csv(paste(path.data,name,"_statsAllData_",load.date,".csv",sep=""))
 }
-
-
 ```
 
 ##Plots
