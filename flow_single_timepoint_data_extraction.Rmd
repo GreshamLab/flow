@@ -70,7 +70,6 @@ requireInstall("tidyverse")
 **Variables and Output Settings**
 Variables for the user to set can be found in chunk one. These include both required variables (e.g., working directory), and optional variables (e.g., style of ouput). There are some defaults for these variables.
 
-
 ```{r User Defined Variables}
 #working directory
 dir = '.'
@@ -80,6 +79,8 @@ path.data = paste(getwd(),"/",sep="")
 
 #fcs run sample name
 name = "Test"
+#name of the gate file to use
+gate.name <-
 
 #fcs data to extract
 extract.FSC_A <- "Yes"
@@ -140,13 +141,15 @@ sample.sheet <- read.csv(paste(path.data,"samplesheet_",name,".csv", sep=""))
 #get/set samplesheet parameters, overwrites default
 #!!!! REMEMBER TO ADJUST THE CODE SO THAT THE PARAMETERS MATCH THOSE THAT YOU ADD TO THE PDATA, TO THE EXTRATCED DATA, AND TO THE DATA 
 
-#sample.param <- as_tibble(matrix(nrow=0, ncol = ncol(sample.sheet)))
-#colnames(sample.param) <- colnames(sample.sheet)
 
 #reads in FCS files in order outliined in samplesheet
 files <- paste(path.data,name,"/",sort(factor(list.files(paste(path.data,name,"/", sep=""),full.names=FALSE), levels = paste(sample.sheet$Well,".fcs",sep="" ), ordered=TRUE)),sep="")
 flowData <- read.ncdfFlowSet(files=files, pattern=".fcs", alter.names = TRUE)
 
+#Ensures that the number of entries in the sample sheet match the number of flowFrames in the flowSet
+sample.ind <- which(paste(sample.sheet$Well,".fcs", sep="") %in% sampleNames(flowData))
+sample.sheet <- sample.sheet[sample.ind,]
+sample.sheet <- sample.sheet[order(sample.sheet$Well),]
 
 #Adds a sample sheet data to the pData of the flowset
 #Defines the sample name in the two places needed for the flowframe
@@ -167,7 +170,7 @@ pData(flowData)$Experiment <- sample.sheet$Experiment
 
 
 #Load Gates
-load(file = "gates.RData")
+load(file = gate.name)
 
 ```
 
@@ -178,8 +181,9 @@ Just checks to make sure you collected the amount of data you thought you did, a
 #Check how many cells were counted in each fcs file
 total <- fsApply(flowData, each_col, length)[1:length(flowData)] #total counts per sample
 print(total)
-#Print the medians of data values for each measurement
-fsApply(flowData, each_col, median)[1:length(flowData)]
+
+#Print the summary of data values for each sample
+summary(flowData)
 
 samples.num <- length(flowData)
 print(samples.num)
@@ -235,16 +239,14 @@ ggcyto(flowData, aes(x = `FSC.A`, y =  `SSC.A`)) + geom_hex(bins = 512) +  xlim(
 
 #Non-fluorescent population gate
 
-ggcyto(flowData, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) +  xlim(0,1e6) + ylim(0,3e5) + geom_gate(fl1gate.0) + facet_wrap(~name, ncol = 8, nrow = 4) + ggtitle("First flowset - non GFP gate")
+ggcyto(flowData, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) +  xlim(0,1e6) + ylim(0,3e5) + geom_gate(gate.neg) + facet_wrap(~name, ncol = 8, nrow = 4) + ggtitle("First flowset - non GFP gate")
 
-#1 copy Fluorescent population gate
-ggcyto(flowData, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) +  xlim(0,1e6) + ylim(0,3e5) + geom_gate(fl1gate.1) + facet_wrap(~name, ncol = 8, nrow = 4) + ggtitle("First flowset - GFP gate")
+# Fluorescent population gate
+ggcyto(flowData, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) +  xlim(0,1e6) + ylim(0,3e5) + geom_gate(gate.pos) + facet_wrap(~name, ncol = 8, nrow = 4) + ggtitle("First flowset - GFP gate")
 
-#2 copy fluorescing gate
-ggcyto(flowData, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) +  xlim(0,1e6) + ylim(0,3e5) + geom_gate(fl1gate.2) + facet_wrap(~name, ncol = 8, nrow = 4) + ggtitle("First flowset - high GFP gate")
+#Hi fluorescing gate
+ggcyto(flowData, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) +  xlim(0,1e6) + ylim(0,3e5) + geom_gate(gate.hi) + facet_wrap(~name, ncol = 8, nrow = 4) + ggtitle("First flowset - high GFP gate")
 
-#3+ copy fluorescing gate
-ggcyto(flowData, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) +  xlim(0,1e6) + ylim(0,3e5) + geom_gate(fl1gate.3) + facet_wrap(~name, ncol = 8, nrow = 4) + ggtitle("First flowset - high GFP gate")
 
 ```
 
@@ -325,7 +327,8 @@ for(i in 1:length(filteredData)){
   if(extract.FL4_H == "Yes"){fl4.h <- exprs(filteredData[[i,12]])}
   if(extract.Width == "Yes"){width <- exprs(filteredData[[i,11]])}
   if(extract.Time == "Yes"){time <- exprs(filteredData[[i,12]])}
-
+  
+#!!!! REMEMBER THAT YOU NEED TO MAKE SURE YOUR SAMPLESHEET PARAMATERS ARE INCLUDED IN THIS CODE
   filtered.data <- rbind(filtered.data, cbind(SAMPLE=sample,WELL=well,STRAIN=strain,GENOTYPE=genotype,PLOIDY=ploidy,MEDIA=media,EXPERIMENT=exp,
                     if(extract.FSC_A == "Yes"){FSC.A=fsc.a},
                     if(extract.SSC_A == "Yes"){SSC.A=ssc.a},
@@ -395,6 +398,7 @@ stats.data <- cbind(sample.param,COUNT=NA,FSC_MEDIAN=NA,FSC_MEAN=NA,FSC_SD=NA,FL
   if(extract.Width == "Yes"){width <- exprs(filteredData[[i,11]])}
   if(extract.Time == "Yes"){time <- exprs(filteredData[[i,12]])}
  
+  #!!!! REMEMBER THAT YOU NEED TO MAKE SURE YOUR SAMPLESHEET PARAMATERS ARE INCLUDED IN THIS CODE AND THAT YOU MAY NEED TO ADD OR REMOVE STATISTIC COLUMNS BASED ON WHAT YOUR NEEDS ARE !!!!
   stats.data<-(rbind(stats.data,cbind(SAMPLE=sample,WELL=well,STRAIN=strain,GENOTYPE=genotype,PLOIDY=ploidy,MEDIA=media,EXPERIMENT=exp,COUNT=length(fsc.a),FSC_MEDIAN=median(fsc.a),FSC_MEAN=mean(fsc.a),FSC_SD=sd(fsc.a),FL1_MEDIAN=median(fl1.a),FL1_MEAN=mean(fl1.a),FL1_SD=sd(fl1.a),NORMALIZED_GFP_MEDIAN=median(fl1.a/fsc.a),NORMALIZED_GFP_MEAN=mean(fl1.a/fsc.a),NORMALIZED_GFP_SD=sd(fl1.a/fsc.a))))
  }  
 
