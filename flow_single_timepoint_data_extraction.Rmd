@@ -1,0 +1,603 @@
+---
+title: "Gresham Lab Floww Cytometry Single Timepoint Analysis"
+author: 'G. Avecilla, N. Brandt, S. Lauer, F. Abdul-Rahman, D. Gresham'
+date: '`r Sys.Date()`'
+output: html_notebook
+---
+
+This notebook contains the code necessary to analysis flow cytometry data in the Gresham Lab. 
+
+To analyze flow cytometry data, you MUST use the latest version of this code, available on the [Gresham Lab github](https://github.com/GreshamLab/flow).
+
+**Experimental overview**
+
+Write a detailed description of your experiment here including the goal of the analysis and your interpretation of the results.   
+If you still see this text it means that you have not described the experiment and whatever follows is meaningless.
+
+*This code is designed for use with the Accuri flow cytometer, which is equiped with the following lasers and filters*
+
+* Blue laser (488 nm)
+* FL1 filter = 514/20nm   GFP
+* FL3 filter = 575/25nm   YFP
+
+* Yellow/green laser (552 nm)
+* FL2 filter = 610/20nm   mCherry, dtomato
+* FL4 filter = 586/15nm   DsRed
+  
+**Requirements**
+
+In order to run this code you need:
+
+* to predefine your gates using the gating.R script
+* the gates.Rdata workspace, which contains the gates to be used in this script
+* a .csv sample sheet in with the first XXXX columns set up as in the example below
+* user defined variables, see below and chunk 2
+
+**Output**  
+This script generates quality control plots in the notebook and a file(s) with a summary of results.
+The user can generate the output file(s) in three different styles: 
+
+1. As a dataframe converted from fcs with all or some of the data.
+2. As a dataframe with summary statistics (e.g. median FL1 per sample)
+3. As a new .fcs file with additional information (e.g. phenotype or sample information) appended
+
+**Libraries**
+
+```{r Libraries, eval=TRUE}
+# This is a function that just makes sure you have a package, or installs it for you without prompting
+
+requireInstall <- function(packageName,isBioconductor=F) {
+  if ( !try(require(packageName,character.only=T)) ) {
+    print(paste0("You don't have ",packageName," accessible, ",
+      "I'm gonna install it"))
+    if (isBioconductor) {
+      source("http://bioconductor.org/biocLite.R")                        
+      biocLite(packageName)                                                 
+    } else {
+      install.packages("packageName", repos = "http://cran.us.r-project.org")
+    }
+  }
+  return(1)
+}
+
+#Load libraries
+requireInstall("openCyto",isBioconductor=T)
+requireInstall("ggcyto",isBioconductor=T)
+requireInstall("tidyverse")
+```
+
+  
+**Variables and Output Settings**
+Variables for the user to set can be found in chunk one. These include both required variables (e.g., working directory), and optional variables (e.g., style of ouput). There are some defaults for these variables.
+
+```{r User Defined Variables}
+#working directory
+dir = '.'
+
+#file location of fcs and sampleshhet
+path.data = paste(getwd(),"/",sep="")
+
+#fcs run sample name
+name = "Test"
+#name of the gate file to use
+gate.name <- NA
+  
+#are you checking ploidy with PI stain?
+#if you are, you must define the ploidy (of at least the controls) in your sample sheet
+pi <- TRUE
+
+#fcs data to extract
+extract.FSC_A <- "Yes"
+extract.SSC_A <- "Yes"
+extract.FL1_A <- "Yes"
+extract.FL2_A <- "No"
+extract.FL3_A <- "No"
+extract.FL4_A <- "No" 
+extract.FSC_H <- "No"
+extract.SSC_H <- "No"
+extract.FL1_H <- "No"
+extract.FL2_H <- "No"
+extract.FL3_H <- "No"
+extract.FL4_H <- "No"
+extract.Width <- "No"
+extract.Time  <- "No"
+
+#samplesheet parameters
+sample.param <- data.frame(SAMPLE=NA, WELL=NA, STRAIN=NA, GENOTYPE=NA, PLOIDY=NA, MEDIA=NA, EXPERIMENT=NA)
+
+#style of output
+#Proportional Data
+save.prop <- "Yes"
+#FlowSet
+save.flowset <- "No"
+#filename
+folder.flowset <-  paste(name, 'flowdata', Sys.Date(), sep = '_')
+#DataFrame - Individual data points
+save.df <- "Yes"
+file.df <- paste(name, 'df', Sys.Date(), sep = '_')
+#DataFrame - Experiment Statistics
+save.stats <- "Yes"
+file.stats <- paste(name, 'stats', Sys.Date(), sep = '_')
+
+```
+
+
+**Read in Data**
+*.fcs files must be in a folder with a unique name and have an accompanying .csv samplesheet
+The samplesheet name format must be samplesheet_"unique name".csv
+It must contain the following columns, in addition you may add additioanl columns depending on your needs
+You must also define the parameters under the pData entry
+
+#Example Set of Samplesheet Parameters
+Need to define names
+* column1 = Well
+* column2 = Strain
+* column3 = Genotype
+* column4 = Ploidy
+* column5 = Media
+* column6 = Experiment
+* column7 = Userdefined
+
+
+```{r}
+#Reads in samplesheet
+sample.sheet <- read.csv(paste(path.data,"samplesheet_",name,".csv", sep=""))
+#get/set samplesheet parameters, overwrites default
+#!!!! REMEMBER TO ADJUST THE CODE SO THAT THE PARAMETERS MATCH THOSE THAT YOU ADD TO THE PDATA, TO THE EXTRATCED DATA, AND TO THE DATA 
+
+
+#reads in FCS files in order outliined in samplesheet
+files <- paste(path.data,name,"/",sort(factor(list.files(paste(path.data,name,"/", sep=""),full.names=FALSE), levels = paste(sample.sheet$Well,".fcs",sep="" ), ordered=TRUE)),sep="")
+flowData <- read.ncdfFlowSet(files=files, pattern=".fcs", alter.names = TRUE)
+
+#Ensures that the number of entries in the sample sheet match the number of flowFrames in the flowSet
+sample.ind <- which(paste(sample.sheet$Well,".fcs", sep="") %in% sampleNames(flowData))
+sample.sheet <- sample.sheet[sample.ind,]
+sample.sheet <- sample.sheet[order(sample.sheet$Well),]
+
+#Adds a sample sheet data to the pData of the flowset
+#Defines the sample name in the two places needed for the flowframe
+#sampleNames must be unique and is used by flowframe to differenate between flowframes
+#pData()$name is used as a defualt value in many of the functions used to display FCS data
+sampleNames(flowData) <- paste(gsub(" ","_",sample.sheet$Strain),"_",sub(" ","_",sample.sheet$Well), sep="")
+pData(flowData)$name <- sampleNames(flowData)
+
+
+#Additional samplesheet parameters added to the the FlowSet
+#!!!! REMEMBER THAT YOU NEED TO MAKE SURE THESE MATCH YOUR SAMPLESHEET PARAMETERS
+pData(flowData)$Well <- sample.sheet$Well
+pData(flowData)$Strain <- sample.sheet$Strain
+pData(flowData)$Genotype <- sample.sheet$Genotype
+pData(flowData)$Ploidy <- sample.sheet$Ploidy
+pData(flowData)$Media <- sample.sheet$Media
+pData(flowData)$Experiment <- sample.sheet$Experiment
+
+
+#Load Gates
+load(file = gate.name)
+
+```
+
+** Base Summary **
+Just checks to make sure you collected the amount of data you thought you did, as well as gathering the actual number of counts in each sample and the number of samples to be used in later chunks.
+
+```{r flowSet summaries}
+#Check how many cells were counted in each fcs file
+total <- fsApply(flowData, each_col, length)[1:length(flowData)] #total counts per sample
+print(total)
+
+#Print the summary of data values for each sample
+summary(flowData)
+
+samples.num <- length(flowData)
+print(samples.num)
+```
+
+
+** Gating **
+Apply all the gates you created to your data set, if you have more then the 4 generic gates, you'll need to create a new segment of gating code
+EXAMPLE CODE
+START
+  GATEDDATA <- Subset(flowData, GATE) 
+  GATEDDATACOUNTS <- fsApply(GATEDDATA, each_col, length)[1:samples.num]
+  print(GATEDDATACOUNTS)
+END
+
+```{r Application of Gates}
+##Subset the data by applying sequential gates##
+
+#apply doublet gate to ALL SAMPLES
+flowData.singlets <- Subset(flowData, pg.singlets) 
+singlets <- fsApply(flowData.singlets, each_col, length)[1:samples.num]
+print(singlets)
+
+#apply debris gates
+filteredData <- Subset(flowData.singlets, pg.nondebris) 
+non.debris <- fsApply(filteredData, each_col, length)[1:samples.num]
+print(non.debris)
+
+#this gate defines nonFL1 cells
+flone.neg <- Subset(filteredData, gate.neg) 
+flone.neg.cells <- fsApply(flone.neg, each_col, length)[1:samples.num]
+print(flone.neg.cells)
+
+#this gate defines flouresecent cells
+flone.pos <- Subset(filteredData, gate.pos) 
+flone.pos.cells <- fsApply(flone.pos, each_col, length)[1:samples.num]
+print(flone.pos.cells)
+
+```
+
+** Quality control **
+#Note that you may need to adjust the axis, the bin size, and the number cols and rows, and the number of fluorescent gates in order to produce the best visulatization for your data
+
+##Gates
+```{r}
+
+#Singlets gate
+ggcyto(flowData, aes(x = `FSC.H`, y =  `FSC.A`)) + geom_hex(bins = 512) +  xlim(0,3e6) + ylim(0,3e6) + geom_gate(pg.singlets) + facet_wrap(~name, ncol = 8, nrow = 4) + ggtitle("First flowset - singlets gate")
+
+#Debris gate
+
+ggcyto(flowData, aes(x = `FSC.A`, y =  `SSC.A`)) + geom_hex(bins = 512) +  xlim(0,2e6) + ylim(0,5e5) + geom_gate(pg.nondebris) + facet_wrap(~name, ncol = 8, nrow = 4) + ggtitle("First flowset - nondebris gate")
+
+#Non-fluorescent population gate
+
+ggcyto(flowData, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) +  xlim(0,1e6) + ylim(0,3e5) + geom_gate(gate.neg) + facet_wrap(~name, ncol = 8, nrow = 4) + ggtitle("First flowset - non GFP gate")
+
+# Fluorescent population gate
+ggcyto(flowData, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) +  xlim(0,1e6) + ylim(0,3e5) + geom_gate(gate.pos) + facet_wrap(~name, ncol = 8, nrow = 4) + ggtitle("First flowset - GFP gate")
+
+#Hi fluorescing gate
+ggcyto(flowData, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) +  xlim(0,1e6) + ylim(0,3e5) + geom_gate(gate.hi) + facet_wrap(~name, ncol = 8, nrow = 4) + ggtitle("First flowset - high GFP gate")
+
+
+```
+
+##Ploidy check
+You may have to modify x limits based on your data  
+Make sure you have haploid and diploid controls for this
+```{r Ploidy}
+#make sure pData is associated with gated sample
+pData(flowData.nondebris) <- pData(flowData)
+
+p = ggcyto(flowData.nondebris, aes(x = `FSC.A`)) 
+p + geom_density_ridges(aes(y = name)) + 
+  facet_null() +
+  scale_x_continuous(expand=c(0,0)) +
+  ggtitle('Ploidy check by forward scatter')
+
+if(pi == TRUE) {
+  p = ggcyto(flowData.nondebris, aes(x = `FL2.A`)) 
+  p + geom_density_ridges(aes(y = name, fill = Ploidy)) + 
+  facet_null() +
+  scale_x_continuous(expand=c(0,0), limits = c(0,7.5e3)) +
+  ggtitle('Ploidy check by PI stain')
+}
+```
+
+
+##Data transformation for visualization
+```{r}
+#In order to look at QC plots the data is transformed using the logicle transform, which is a log transform for high values that transitions to a linear transformation near zero values 
+#This is simply for visualization purposes
+
+lgcl <- logicleTransform(w = 0.5, t= 10000, m=4.5) #the parameters w,t, and m define the transformation parameters
+
+#Dataset 1 tranformation applied to every channel except width and time
+dataLGCLTransform <- transform(filteredData, 'FSC.A' = lgcl(`FSC.A`), 'SSC.A' =lgcl(`SSC.A`), 'FL1.A' = lgcl(`FL1.A`), 'FL2.A' = lgcl(`FL2.A`), 'FL3.A' = lgcl(`FL3.A`), 'FL4.A' = lgcl(`FL4.A`),'FSC.H' = lgcl(`FSC.H`),'SSC.H' = lgcl(`SSC.H`),'FL1.H' = lgcl(`FL1.H`),'FL2.H' = lgcl(`FL2.H`),'FL3.H' = lgcl(`FL3.H`),'FL4.H' = lgcl(`FL4.H`)) 
+
+```
+
+##Effect of time
+```{r}
+#The effect of time on signal (of which there shouldn't be any)
+ggcyto(dataLGCLTransform, aes(x = `Time`, y =  `FL1.A`)) + geom_hex(bins = 128) +  xlim(150,250) + ylim(0,8)+facet_wrap(~name, ncol = 8, nrow = 4)
+```
+
+##Plots of FL1 versus FSC
+```{r}
+ggcyto(dataLGCLTransform, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) +  xlim(4,8) + ylim(2,6) + facet_wrap(~name, ncol = 8, nrow = 4)
+```
+
+##Plots of FSC versus SSC
+```{r}
+ggcyto(dataLGCLTransform, aes(x = `FSC.A`, y =  `SSC.A`)) + geom_hex(bins = 512) +  xlim(4,8) + ylim(4,8)+facet_wrap(~name, ncol = 8, nrow = 4)
+```
+
+
+**Data Extraction**
+Extracts the data you want based on your selections in the user defined variables
+Also remember you need to make sure your samplesheet paramters match with the parameters you wanted in your extracted data file
+
+```{r Data extraction}
+
+#Move filtered data into a dataframe
+#Create the empty data frame
+filtered.data <- sample.param
+if(extract.FSC_A == "Yes"){filtered.data<-cbind(filtered.data, FSC.A=NA)}
+if(extract.SSC_A == "Yes"){filtered.data<-cbind(filtered.data, SSC.A=NA)}
+if(extract.FL1_A == "Yes"){filtered.data<-cbind(filtered.data, FL1.A=NA)}
+if(extract.FL2_A == "Yes"){filtered.data<-cbind(filtered.data, FL2.A=NA)}
+if(extract.FL3_A == "Yes"){filtered.data<-cbind(filtered.data, FL3.A=NA)}
+if(extract.FL4_A == "Yes"){filtered.data<-cbind(filtered.data, FL4.A=NA)}
+if(extract.FSC_H == "Yes"){filtered.data<-cbind(filtered.data, FSC.H=NA)}
+if(extract.SSC_H == "Yes"){filtered.data<-cbind(filtered.data, SSC.H=NA)}
+if(extract.FL1_H == "Yes"){filtered.data<-cbind(filtered.data, FL1.H=NA)}
+if(extract.FL2_H == "Yes"){filtered.data<-cbind(filtered.data, FL2.H=NA)}
+if(extract.FL3_H == "Yes"){filtered.data<-cbind(filtered.data, FL3.H=NA)}
+if(extract.FL4_H == "Yes"){filtered.data<-cbind(filtered.data, FL4.H=NA)}
+if(extract.Width == "Yes"){filtered.data<-cbind(filtered.data, Width=NA)}
+if(extract.Time == "Yes"){filtered.data<-cbind(filtered.data, Time=NA)}
+
+#Fill the data frame with the data you want
+#!!!! REMEMBER THAT YOU NEED TO MAKE SURE YOUR SAMPLESHEET PARAMATERS ARE INCLUDED IN THIS CODE
+for(i in 1:length(filteredData)){
+  sample <- sampleNames(filteredData)[i]
+  well <- as.character(pData(filteredData)$Well[i])
+  strain <- as.character(pData(filteredData)$Strain[i])
+  genotype <- as.character(pData(filteredData)$Genotype[i])
+  ploidy <- as.character(pData(filteredData)$Ploidy[i])
+  media <- as.character(pData(filteredData)$Media[i])
+  exp <- as.character(pData(filteredData)$Experiment[i])
+  if(extract.FSC_A == "Yes"){fsc.a <- exprs(filteredData[[i,1]])}
+  if(extract.SSC_A == "Yes"){ssc.a <- exprs(filteredData[[i,2]])}
+  if(extract.FL1_A == "Yes"){fl1.a <- exprs(filteredData[[i,3]])}
+  if(extract.FL2_A == "Yes"){fl2.a <- exprs(filteredData[[i,4]])}
+  if(extract.FL3_A == "Yes"){fl3.a <- exprs(filteredData[[i,5]])}
+  if(extract.FL4_A == "Yes"){fl4.a <- exprs(filteredData[[i,6]])}
+  if(extract.FSC_H == "Yes"){fsc.h <- exprs(filteredData[[i,7]])}
+  if(extract.SSC_H == "Yes"){ssc.h <- exprs(filteredData[[i,8]])}
+  if(extract.FL1_H == "Yes"){fl1.h <- exprs(filteredData[[i,9]])}
+  if(extract.FL2_H == "Yes"){fl2.h <- exprs(filteredData[[i,10]])}
+  if(extract.FL3_H == "Yes"){fl3.h <- exprs(filteredData[[i,11]])}
+  if(extract.FL4_H == "Yes"){fl4.h <- exprs(filteredData[[i,12]])}
+  if(extract.Width == "Yes"){width <- exprs(filteredData[[i,11]])}
+  if(extract.Time == "Yes"){time <- exprs(filteredData[[i,12]])}
+  
+#!!!! REMEMBER THAT YOU NEED TO MAKE SURE YOUR SAMPLESHEET PARAMATERS ARE INCLUDED IN THIS CODE
+  filtered.data <- rbind(filtered.data, cbind(SAMPLE=sample,WELL=well,STRAIN=strain,GENOTYPE=genotype,PLOIDY=ploidy,MEDIA=media,EXPERIMENT=exp,
+                    if(extract.FSC_A == "Yes"){FSC.A=fsc.a},
+                    if(extract.SSC_A == "Yes"){SSC.A=ssc.a},
+                    if(extract.FL1_A == "Yes"){FL1.A=fl1.a},
+                    if(extract.FL2_A == "Yes"){FL2.A=fl2.a},
+                    if(extract.FL3_A == "Yes"){FL3.A=fl3.a},
+                    if(extract.FL4_A == "Yes"){FL4.A=fl4.a},
+                    if(extract.FSC_H == "Yes"){FSC.H=fsc.h},
+                    if(extract.SSC_H == "Yes"){SSC.H=ssc.h},
+                    if(extract.FL1_H == "Yes"){FL1.H=fl1.h},
+                    if(extract.FL2_H == "Yes"){FL2.H=fl2.h},
+                    if(extract.FL3_H == "Yes"){FL3.H=fl3.h},
+                    if(extract.FL4_H == "Yes"){FL4.H=fl4.h},
+                    if(extract.Width == "Yes"){Width=width},
+                    if(extract.Time == "Yes"){Time=time}))
+}  
+
+ #Cleans up DataFrames
+  filtered.data<-filtered.data[2:nrow(filtered.data),]
+  if(extract.FSC_A == "Yes"){filtered.data$FSC.A<-as.numeric(filtered.data$FSC.A)}
+  if(extract.SSC_A == "Yes"){filtered.data$SSC.A<-as.numeric(filtered.data$SSC.A)}
+  if(extract.FL1_A == "Yes"){filtered.data$FL1.A<-as.numeric(filtered.data$FL1.A)}
+  if(extract.FL2_A == "Yes"){filtered.data$FL2.A<-as.numeric(filtered.data$FL2.A)}
+  if(extract.FL3_A == "Yes"){filtered.data$FL3.A<-as.numeric(filtered.data$FL3.A)}
+  if(extract.FL4_A == "Yes"){filtered.data$FL4.A<-as.numeric(filtered.data$FL4.A)}
+  if(extract.FSC_H == "Yes"){filtered.data$FSC.A<-as.numeric(filtered.data$FSC.A)}
+  if(extract.SSC_H == "Yes"){filtered.data$SSC.A<-as.numeric(filtered.data$SSC.A)}
+  if(extract.FL1_H == "Yes"){filtered.data$FL1.A<-as.numeric(filtered.data$FL1.A)}
+  if(extract.FL2_H == "Yes"){filtered.data$FL2.A<-as.numeric(filtered.data$FL2.A)}
+  if(extract.FL3_H == "Yes"){filtered.data$FL3.A<-as.numeric(filtered.data$FL3.A)}
+  if(extract.FL4_H == "Yes"){filtered.data$FL4.A<-as.numeric(filtered.data$FL4.A)}
+  if(extract.Width == "Yes"){filtered.data$Width<-as.numeric(filtered.data$Width)}
+  if(extract.Time == "Yes"){filtered.data$Time<-as.numeric(filtered.data$Time)}
+```
+
+**Summary Statistics**
+Creates a set od statistics that summarize your data. You will need to make sure to adjust the code depending on the data and statistics you want summarized
+Also remember you need to make sure your samplesheet paramters match with the parameters you wanted in your extracted data file
+
+```{r Summary Statistics}
+#Create the empty data frame
+# !!!! REMEMBER YOU MAY NEED TO ADD OR REMOVE STATISTIC COLUMNS BASED ON WHAT YOUR NEEDS ARE !!!!
+stats.data <- cbind(sample.param,COUNT=NA,FSC_MEDIAN=NA,FSC_MEAN=NA,FSC_SD=NA,FL1_MEDIAN=NA,FL1_MEAN=NA,FL1_SD=NA,NORMALIZED_GFP_MEDIAN=NA,NORMALIZED_GFP_MEAN=NA,NORMALIZED_GFP_SD=NA)
+
+#Fill the data frame with the data you want
+#!!!! REMEMBER THAT YOU NEED TO MAKE SURE YOUR SAMPLESHEET PARAMATERS ARE INCLUDED IN THIS CODE AND THAT YOU MAY NEED TO ADD OR REMOVE STATISTIC COLUMNS BASED ON WHAT YOUR NEEDS ARE !!!!
+ for(i in 1:length(filteredData)){
+  sample <- sampleNames(filteredData)[i]
+  well <- as.character(pData(filteredData)$Well[i])
+  strain <- as.character(pData(filteredData)$Strain[i])
+  genotype <- as.character(pData(filteredData)$Genotype[i])
+  ploidy <- as.character(pData(filteredData)$Ploidy[i])
+  media <- as.character(pData(filteredData)$Media[i])
+  exp <- as.character(pData(filteredData)$Experiment[i])
+  if(extract.FSC_A == "Yes"){fsc.a <- exprs(filteredData[[i,1]])}
+  if(extract.SSC_A == "Yes"){ssc.a <- exprs(filteredData[[i,2]])}
+  if(extract.FL1_A == "Yes"){fl1.a <- exprs(filteredData[[i,3]])}
+  if(extract.FL2_A == "Yes"){fl2.a <- exprs(filteredData[[i,4]])}
+  if(extract.FL3_A == "Yes"){fl3.a <- exprs(filteredData[[i,5]])}
+  if(extract.FL4_A == "Yes"){fl4.a <- exprs(filteredData[[i,6]])}
+  if(extract.FSC_H == "Yes"){fsc.h <- exprs(filteredData[[i,7]])}
+  if(extract.SSC_H == "Yes"){ssc.h <- exprs(filteredData[[i,8]])}
+  if(extract.FL1_H == "Yes"){fl1.h <- exprs(filteredData[[i,9]])}
+  if(extract.FL2_H == "Yes"){fl2.h <- exprs(filteredData[[i,10]])}
+  if(extract.FL3_H == "Yes"){fl3.h <- exprs(filteredData[[i,11]])}
+  if(extract.FL4_H == "Yes"){fl4.h <- exprs(filteredData[[i,12]])}
+  if(extract.Width == "Yes"){width <- exprs(filteredData[[i,11]])}
+  if(extract.Time == "Yes"){time <- exprs(filteredData[[i,12]])}
+ 
+  #!!!! REMEMBER THAT YOU NEED TO MAKE SURE YOUR SAMPLESHEET PARAMATERS ARE INCLUDED IN THIS CODE AND THAT YOU MAY NEED TO ADD OR REMOVE STATISTIC COLUMNS BASED ON WHAT YOUR NEEDS ARE !!!!
+  stats.data<-(rbind(stats.data,cbind(SAMPLE=sample,WELL=well,STRAIN=strain,GENOTYPE=genotype,PLOIDY=ploidy,MEDIA=media,EXPERIMENT=exp,COUNT=length(fsc.a),FSC_MEDIAN=median(fsc.a),FSC_MEAN=mean(fsc.a),FSC_SD=sd(fsc.a),FL1_MEDIAN=median(fl1.a),FL1_MEAN=mean(fl1.a),FL1_SD=sd(fl1.a),NORMALIZED_GFP_MEDIAN=median(fl1.a/fsc.a),NORMALIZED_GFP_MEAN=mean(fl1.a/fsc.a),NORMALIZED_GFP_SD=sd(fl1.a/fsc.a))))
+ }  
+
+#Cleans up DataFrames
+stats.data<-stats.data[2:nrow(stats.data),]
+stats.data$COUNT<-as.numeric(stats.data$COUNT)
+stats.data$FSC_MEDIAN<-as.numeric(stats.data$FSC_MEDIAN)
+stats.data$FSC_MEAN<-as.numeric(stats.data$FSC_MEAN)    
+stats.data$FSC_SD<-as.numeric(stats.data$FSC_SD)
+stats.data$FL1_MEDIAN<-as.numeric(stats.data$FL1_MEDIAN)
+stats.data$FL1_MEAN<-as.numeric(stats.data$FL1_MEAN)    
+stats.data$FL1_SD<-as.numeric(stats.data$FL1_SD)
+stats.data$NORMALIZED_GFP_MEDIAN<-as.numeric(stats.data$NORMALIZED_GFP_MEDIAN)
+stats.data$NORMALIZED_GFP_MEAN<-as.numeric(stats.data$NORMALIZED_GFP_MEAN)    
+stats.data$NORMALIZED_GFP_SD<-as.numeric(stats.data$NORMALIZED_GFP_SD)
+```
+
+
+#Plots
+```{r Desnity Plots}
+ggplot(filtered.data)+
+      geom_density(aes(x = FSC.A), colour = "black")+
+      theme()+
+      labs(y = "Counts", x = "FSC.A") +
+      scale_x_log10()+
+      facet_wrap('SAMPLE')
+
+
+ggplot(filtered.data )+
+      geom_density(aes(x = FL1.A), colour = "green")+
+      theme()+
+      labs(y = "Counts", x = "FL1.A") +
+      scale_x_log10()+
+      facet_wrap('SAMPLE')
+
+ggplot(filtered.data )+
+      geom_density(aes(x = FL1.A/FSC.A), colour = "blue")+
+      theme()+
+      labs(y = "Counts",x = "FL1.A/FSC.A") +
+      scale_x_log10()+
+      facet_wrap('SAMPLE')
+
+
+```
+
+```{r Data Distribution Plots}
+ggplot(filtered.data, aes(SAMPLE,FSC.A)) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 6)) +
+    stat_boxplot(geom ='errorbar', colour = "grey") +
+    geom_boxplot(outlier.shape = NA, colour = "grey") +
+    #geom_hline(yintercept=haploid.fsc, lty=2, colour = "black") +
+    #geom_hline(yintercept=diploid.fsc, lty=2, colour = "blue") +
+    scale_y_log10()+
+    scale_x_discrete(labels=levels(filtered.data$SAMPLE))
+
+ggplot(filtered.data, aes(SAMPLE,FL1.A)) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 6)) +
+    stat_boxplot(geom ='errorbar', colour = "lightgreen") +
+    geom_boxplot(outlier.shape = NA, colour = "lightgreen") +
+    #geom_hline(yintercept=gfp.bg, lty=2, colour = "yellow") +
+    #geom_hline(yintercept=gfp.wt, lty=2, colour = "green") +
+    labs(title= paste("FL1.A", sep="")) +
+    scale_y_log10()+
+    scale_x_discrete(labels=levels(filtered.data$SAMPLE))
+
+ggplot(filtered.data, aes(SAMPLE,FL1.A/FSC.A)) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 6)) +
+    stat_boxplot(geom ='errorbar', colour = "green") +
+    geom_boxplot(outlier.shape = NA, colour = "green") +
+    #geom_hline(yintercept=gfp.norm, lty=2, colour = "blue") +
+    scale_y_log10()+
+    scale_x_discrete(labels=levels(filtered.data$SAMPLE))
+```
+
+
+```{r Quantitation of Signal}
+
+###FL1###
+baseline.FL1 <- stats.data$FL1_MEDIAN[] #MUST REPLACE WITH YOUR FL1 ChannelCONTROL!!
+ggplot(stats.data,aes(x=SAMPLE, y = FL1_MEDIAN/baseline.FL1)) +
+  geom_col() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 6)) +
+  scale_x_discrete(labels=stats.data$SAMPLE)+
+  ylab("Relative FL1 Median Expression")
+
+###FSC###
+baseline.FSC <- stats.data$FSC_MEDIAN[1] #MUST REPLACE WITH YOUR FSC Channel non-flourescense CONTROL!!
+ggplot(stats.data,aes(x=SAMPLE, y = FSC_MEDIAN/baseline.FL1)) +
+  geom_col() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 6)) +
+  scale_x_discrete(labels=stats.data$SAMPLE)+
+  ylab("Relative Median FSC")
+```
+
+#Repupose Barplots into normal plot ourput flow
+```{r}
+ggplot(stats.data,aes(x=SAMPLE, y = singlets/total)) +
+  geom_col() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 6)) +
+  scale_x_discrete(labels=stats.data$SAMPLE)+
+  ylab("Proportion Singlet Cells")
+
+ggplot(stats.data,aes(x=SAMPLE, y = non.debris/total)) +
+  geom_col() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 6)) +
+  scale_x_discrete(labels=stats.data$SAMPLE)+
+  ylab("Proportion Non-debris Cells")
+
+ggplot(stats.data,aes(x=SAMPLE, y = flone.neg/non.debris)) +
+  geom_col() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 6)) +
+  scale_x_discrete(labels=stats.data$SAMPLE)+
+  ylab("Proportion Cells with no Flourescense")
+
+ggplot(stats.data,aes(x=SAMPLE, y = flone.pos.cells/non.debris)) +
+  geom_col() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 6)) +
+  scale_x_discrete(labels=stats.data$SAMPLE)+
+  ylab("Proportion cells with Flourescense")
+```
+
+
+##Population Composition
+#Currently Designed for LTEE experiments
+#You may need to remove or modify this based on your experiments needs
+```{r Population composition}
+
+PopProportion_zeroGFP <- flone.neg.cells/non.debris
+PopProportion_oneGFP <- flone.one.cells/non.debris
+PopProportion_twoGFP <- flone.two.cells/non.debris
+PopProportion_threeGFP <- flone.three.cells/non.debris
+prop.data <- cbind(stats.data, PopProportion_zeroGFP, PopProportion_oneGFP, PopProportion_twoGFP, PopProportion_threeGFP, non.debris)
+colnames(prop.data) <- c(colnames(stats.data), "PopProp_0copy", "PopProp_1copy", "PopProp_2copy", "PopProp_3plus", "CELL COUNT")
+
+prop.data %>% 
+  select(SAMPLE,PopProp_3plus,PopProp_0copy,PopProp_1copy,PopProp_2copy) %>% 
+  gather(key="GFP_NUMBER",value="SIGNAL",-SAMPLE) %>%
+  ggplot(aes(fill=factor(GFP_NUMBER, levels = c("PopProp_3plus", "PopProp_2copy", "PopProp_1copy", "PopProp_0copy")), y=SIGNAL, x=SAMPLE)) +
+    geom_bar(stat="identity") +
+    scale_fill_manual(values=c("dark green","light green","grey","black")) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 6)) +
+    ylab("Proportion cells with Flourescense") +
+    theme(legend.title=element_blank())
+```
+
+
+** Saving Data **
+```{r Saves Data}
+
+#Resave the flowset, this will now include the data from your samplesheet added into the pDATA
+#You can also choose to save only gated data by adjusted what flowset you save
+#Default is ungated samples
+if(save.flowset == "Yes"){write.flowSet(flowData, folder.flowset)}
+
+#The data extracted from the flowset
+if(save.df == "Yes"){save(filtered.data, file=paste(file.df,".Rdata",sep=""))}
+
+#The summarized data extracted from the flowset
+if(save.stats== "Yes"){write.csv(stats.data, file= paste(file.stats,".csv",sep=""), row.names=TRUE quote=F)}
+
+#The population proportion data from your flowset
+if(save.prop == "Yes"){write.csv(prop.data, file=paste(file.prop,".csv",sep=""), row.names=TRUE quote=F)}
+```
+
+
