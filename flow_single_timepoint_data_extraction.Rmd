@@ -64,6 +64,7 @@ requireInstall <- function(packageName,isBioconductor=F) {
 requireInstall("openCyto",isBioconductor=T)
 requireInstall("ggcyto",isBioconductor=T)
 requireInstall("tidyverse")
+requireInstall("ggridges")
 ```
 
   
@@ -258,17 +259,14 @@ ggcyto(flowData, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) +  xlim(
 You may have to modify x limits based on your data  
 Make sure you have haploid and diploid controls for this
 ```{r Ploidy}
-#make sure pData is associated with gated sample
-pData(flowData.nondebris) <- pData(flowData)
-
-p = ggcyto(flowData.nondebris, aes(x = `FSC.A`)) 
+p = ggcyto(filteredData, aes(x = `FSC.A`)) 
 p + geom_density_ridges(aes(y = name)) + 
   facet_null() +
   scale_x_continuous(expand=c(0,0)) +
   ggtitle('Ploidy check by forward scatter')
 
 if(pi == TRUE) {
-  p = ggcyto(flowData.nondebris, aes(x = `FL2.A`)) 
+  p = ggcyto(filteredData, aes(x = `FL2.A`)) 
   p + geom_density_ridges(aes(y = name, fill = Ploidy)) + 
   facet_null() +
   scale_x_continuous(expand=c(0,0), limits = c(0,7.5e3)) +
