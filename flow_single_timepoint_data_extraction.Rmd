@@ -64,6 +64,7 @@ requireInstall <- function(packageName,isBioconductor=F) {
 requireInstall("openCyto",isBioconductor=T)
 requireInstall("ggcyto",isBioconductor=T)
 requireInstall("tidyverse")
+requireInstall("ggridges")
 ```
 
   
@@ -80,7 +81,13 @@ path.data = paste(getwd(),"/",sep="")
 #fcs run sample name
 name = "Test"
 #name of the gate file to use
-gate.name <-
+
+gate.name <- NA
+  
+#are you checking ploidy with PI stain?
+#if you are, you must define the ploidy (of at least the controls) in your sample sheet
+pi <- TRUE
+
 
 #fcs data to extract
 extract.FSC_A <- "Yes"
@@ -249,6 +256,28 @@ ggcyto(flowData, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) +  xlim(
 
 
 ```
+
+
+##Ploidy check
+You may have to modify x limits based on your data  
+Make sure you have haploid and diploid controls for this
+```{r Ploidy}
+p = ggcyto(filteredData, aes(x = `FSC.A`)) 
+p + geom_density_ridges(aes(y = name)) + 
+  facet_null() +
+  scale_x_continuous(expand=c(0,0)) +
+  ggtitle('Ploidy check by forward scatter')
+
+if(pi == TRUE) {
+  p = ggcyto(filteredData, aes(x = `FL2.A`)) 
+  p + geom_density_ridges(aes(y = name, fill = Ploidy)) + 
+  facet_null() +
+  scale_x_continuous(expand=c(0,0), limits = c(0,7.5e3)) +
+  ggtitle('Ploidy check by PI stain')
+}
+```
+
+
 
 ##Data transformation for visualization
 ```{r}
@@ -476,6 +505,9 @@ ggplot(filtered.data, aes(SAMPLE,FL1.A/FSC.A)) +
     scale_x_discrete(labels=levels(filtered.data$SAMPLE))
 ```
 
+
+
+r
 ```{r Quantitation of Signal}
 
 ###FL1###
@@ -527,6 +559,7 @@ ggplot(stats.data,aes(x=SAMPLE, y = flone.pos.cells/non.debris)) +
   scale_x_discrete(labels=stats.data$SAMPLE)+
   ylab("Proportion cells with Flourescense")
 ```
+
 
 ##Population Composition
 #Currently Designed for LTEE experiments
