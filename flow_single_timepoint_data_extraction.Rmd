@@ -81,11 +81,13 @@ path.data = paste(getwd(),"/",sep="")
 #fcs run sample name
 name = "Test"
 #name of the gate file to use
+
 gate.name <- NA
   
 #are you checking ploidy with PI stain?
 #if you are, you must define the ploidy (of at least the controls) in your sample sheet
 pi <- TRUE
+
 
 #fcs data to extract
 extract.FSC_A <- "Yes"
@@ -255,6 +257,7 @@ ggcyto(flowData, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) +  xlim(
 
 ```
 
+
 ##Ploidy check
 You may have to modify x limits based on your data  
 Make sure you have haploid and diploid controls for this
@@ -273,6 +276,7 @@ if(pi == TRUE) {
   ggtitle('Ploidy check by PI stain')
 }
 ```
+
 
 
 ##Data transformation for visualization
@@ -502,6 +506,8 @@ ggplot(filtered.data, aes(SAMPLE,FL1.A/FSC.A)) +
 ```
 
 
+
+r
 ```{r Quantitation of Signal}
 
 ###FL1###
