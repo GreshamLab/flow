@@ -476,33 +476,33 @@ ggplot(filtered.data )+
 ```{r Data Distribution Plots}
 ggplot(filtered.data, aes(SAMPLE,FSC.A)) +
     theme_bw() +
-    theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 6)) +
+    theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 10)) +
     stat_boxplot(geom ='errorbar', colour = "grey") +
     geom_boxplot(outlier.shape = NA, colour = "grey") +
     #geom_hline(yintercept=haploid.fsc, lty=2, colour = "black") +
     #geom_hline(yintercept=diploid.fsc, lty=2, colour = "blue") +
     scale_y_log10()+
-    scale_x_discrete(labels=levels(filtered.data$SAMPLE))
+    xlab("Sample")
 
 ggplot(filtered.data, aes(SAMPLE,FL1.A)) +
     theme_bw() +
-    theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 6)) +
+    theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 10)) +
     stat_boxplot(geom ='errorbar', colour = "lightgreen") +
     geom_boxplot(outlier.shape = NA, colour = "lightgreen") +
     #geom_hline(yintercept=gfp.bg, lty=2, colour = "yellow") +
     #geom_hline(yintercept=gfp.wt, lty=2, colour = "green") +
     labs(title= paste("FL1.A", sep="")) +
     scale_y_log10()+
-    scale_x_discrete(labels=levels(filtered.data$SAMPLE))
+    xlab("Sample")
 
 ggplot(filtered.data, aes(SAMPLE,FL1.A/FSC.A)) +
     theme_bw() +
-    theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 6)) +
-    stat_boxplot(geom ='errorbar', colour = "green") +
-    geom_boxplot(outlier.shape = NA, colour = "green") +
+    theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 10)) +
+    stat_boxplot(geom ='errorbar', colour = "darkgreen") +
+    geom_boxplot(outlier.shape = NA, colour = "darkgreen") +
     #geom_hline(yintercept=gfp.norm, lty=2, colour = "blue") +
     scale_y_log10()+
-    scale_x_discrete(labels=levels(filtered.data$SAMPLE))
+    xlab("Sample")
 ```
 
 
@@ -545,7 +545,7 @@ ggplot(stats.data,aes(x=SAMPLE, y = non.debris/total)) +
   scale_x_discrete(labels=stats.data$SAMPLE)+
   ylab("Proportion Non-debris Cells")
 
-ggplot(stats.data,aes(x=SAMPLE, y = flone.neg/non.debris)) +
+ggplot(stats.data,aes(x=SAMPLE, y = flone.neg.cells/non.debris)) +
   geom_col() +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 6)) +
@@ -598,10 +598,10 @@ if(save.flowset == "Yes"){write.flowSet(flowData, folder.flowset)}
 if(save.df == "Yes"){save(filtered.data, file=paste(file.df,".Rdata",sep=""))}
 
 #The summarized data extracted from the flowset
-if(save.stats== "Yes"){write.csv(stats.data, file= paste(file.stats,".csv",sep=""), row.names=TRUE quote=F)}
+if(save.stats== "Yes"){write.csv(stats.data, file= paste(file.stats,".csv",sep=""), row.names=TRUE, quote=F)}
 
 #The population proportion data from your flowset
-if(save.prop == "Yes"){write.csv(prop.data, file=paste(file.prop,".csv",sep=""), row.names=TRUE quote=F)}
+if(save.prop == "Yes"){write.csv(prop.data, file=paste(file.prop,".csv",sep=""), row.names=TRUE, quote=F)}
 ```
 
 
