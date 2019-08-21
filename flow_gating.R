@@ -127,7 +127,7 @@ ggcyto(flowData.singlets[c(neg.signal,pos.signal,hi.signal)], aes(x = `FSC.A`, y
 
 #test that the singlet gate looks reasonable for All samples
 for(i in 1:round(length(flowData)/4,0)){
-  ggcyto(flowData.singlets, aes(x = `FSC.A`, y =  `SSC.A`)) + geom_hex(bins = 512) + xlim(0,3e6) + ylim(0,1e6) + geom_gate(pg.nondebris) + facet_wrap_paginate(~name, ncol = 2, nrow = 2, page = i)
+  plot <- ggcyto(flowData.singlets, aes(x = `FSC.A`, y =  `SSC.A`)) + geom_hex(bins = 512) + xlim(0,3e6) + ylim(0,1e6) + geom_gate(pg.nondebris) + facet_wrap_paginate(~name, ncol = 2, nrow = 2, page = i)
   print(plot)
 }
 
@@ -172,7 +172,7 @@ ggcyto(flowData.nondebris[c(neg.signal,pos.signal,hi.signal)], aes(x = `FSC.A`, 
 
 #Examine across all samples
 for(i in 1:round(length(flowData)/4,0)){
-  ggcyto(flowData.nondebris, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) + xlim(0,3e6) + ylim(0,5e4) + geom_gate(gate.neg) + facet_wrap_paginate(~name, ncol = 2, nrow = 2, page = i)
+  plot <- ggcyto(flowData.nondebris, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) + xlim(0,3e6) + ylim(0,5e4) + geom_gate(gate.neg) + facet_wrap_paginate(~name, ncol = 2, nrow = 2, page = i)
   print(plot)
 }
 
@@ -196,7 +196,7 @@ ggcyto(flowData.nondebris[c(neg.signal,pos.signal,hi.signal)], aes(x = `FSC.A`, 
 
 #Examine across all samples
 for(i in 1:round(length(flowData)/4,0)){
-  ggcyto(flowData.nondebris, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) + xlim(0,3e6) + ylim(0,5e4) + geom_gate(gate.neg) + geom_gate(gate.pos) + facet_wrap_paginate(~name, ncol = 2, nrow = 2, page = i)
+  plot <- ggcyto(flowData.nondebris, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) + xlim(0,3e6) + ylim(0,5e4) + geom_gate(gate.neg) + geom_gate(gate.pos) + facet_wrap_paginate(~name, ncol = 2, nrow = 2, page = i)
   print(plot)
 }
   
@@ -220,7 +220,7 @@ ggcyto(flowData.nondebris[c(neg.signal,pos.signal,hi.signal)], aes(x = `FSC.A`, 
 
 #Examine across all samples
 for(i in 1:round(length(flowData)/4,0)){
-  ggcyto(flowData.nondebris, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) + xlim(0,3e6) + ylim(0,5e4) + geom_gate(gate.neg) + geom_gate(gate.pos) + geom_gate(gate.hi) + facet_wrap_paginate(~name, ncol = 2, nrow = 2, page = i)
+  plot <- ggcyto(flowData.nondebris, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) + xlim(0,3e6) + ylim(0,5e4) + geom_gate(gate.neg) + geom_gate(gate.pos) + geom_gate(gate.hi) + facet_wrap_paginate(~name, ncol = 2, nrow = 2, page = i)
   print(plot)
 }
 
