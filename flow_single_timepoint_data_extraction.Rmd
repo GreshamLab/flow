@@ -122,6 +122,10 @@ file.df <- paste(name, 'df', Sys.Date(), sep = '_')
 save.stats <- "Yes"
 file.stats <- paste(name, 'stats', Sys.Date(), sep = '_')
 
+#DataFrame - Proportions in each gate
+save.prop <- "Yes"
+file.prop <- paste(name, 'prop', Sys.Date(), sep = '_')
+
 ```
 
 
