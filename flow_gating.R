@@ -26,10 +26,14 @@
 ###########################################################################################################################
 
 ##To be run the first time if packages are not installed.
-#source("http://bioconductor.org/biocLite.R")
-#biocLite("flowViz")
-#biocLite("flowCore")
-#biocLite("ggcyto")
+#install.packages("BiocManager")
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+#install.packages("BiocManager")
+#BiocManager::install("flowViz")
+#BiocManager::install("flowCore")
+#BiocManager::install("ggcyto")
+#install.packages('ggforce')
+
 
 #Load libraries
 library(flowCore)
