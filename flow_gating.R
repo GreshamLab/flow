@@ -42,7 +42,6 @@ library(ggcyto)
 library(ggforce)
 
 
-
 #Read in the data
 #Set working directory to the folder in which you have stored your .fcs files
 #Read in all the fcs files in the directory.
@@ -52,17 +51,17 @@ dir = '.'
 
 #file location
 #Used for data files being outside of home directory
-path.data = ""
+path.data =   '.'
 
 #set name of run to create gates for
 #Should be the same name as the folder that your .fcs files are in
-name <- ""
+name <- "."
 
 #load sample sheet
-sample.sheet <- read.csv(paste(path.data,"samplesheet_",name,".csv", sep=""))
+sample.sheet <- read.csv(paste(path.data,"/samplesheet_",name,".csv", sep=""))
 
 #read in fcs files in order presented in sample sheet (based on well identifier)
-files <- paste(path.data,name,"/",sort(factor(list.files(paste(path.data,name,"/", sep=""),full.names=FALSE), levels = paste(sample.sheet$Well,".fcs",sep="" ), ordered=TRUE)),sep="")
+files <- paste(path.data,"/",sort(factor(list.files(paste(path.data,"/", sep=""),full.names=FALSE), levels = paste(sample.sheet$Well,".fcs",sep="" ), ordered=TRUE)),sep="")
 flowData <- read.ncdfFlowSet(files=files, pattern=".fcs", alter.names = TRUE)
 
 #Ensures that the number of entries in the sample sheet match the number of flowFrames in the flowSet
