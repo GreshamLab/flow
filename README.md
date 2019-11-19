@@ -1,7 +1,7 @@
 # flow
 Scripts for processing flow cytometry and FACS data
 
-We will make this actually useful this week.
+We will make this actually useful this week by learning how to use these scripts
 
 The overall strategy for using flow cytometry analysis is:
 
