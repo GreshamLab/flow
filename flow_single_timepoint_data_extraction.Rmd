@@ -51,10 +51,9 @@ requireInstall <- function(packageName,isBioconductor=F) {
     print(paste0("You don't have ",packageName," accessible, ",
       "I'm gonna install it"))
     if (isBioconductor) {
-      source("http://bioconductor.org/biocLite.R")                        
-      biocLite(packageName)                                                 
+      BiocManager::install(packageName)                                                 
     } else {
-      install.packages("packageName", repos = "http://cran.us.r-project.org")
+      install.packages(packageName, repos = "http://cran.us.r-project.org")
     }
   }
   return(1)
@@ -73,21 +72,22 @@ Variables for the user to set can be found in chunk one. These include both requ
 
 ```{r User Defined Variables}
 #working directory
+# this is where any files you write will go
+# this is also where your gates are assumed to be (need to change in chunk3 if they are not here)
 dir = '.'
 
-#file location of fcs and sampleshhet
-path.data = paste(getwd(),"/",sep="")
+#file location of fcs and samplesheet
+# you can change this if you want to, default is your working directory
+path.data = paste0(dir,"/")
 
 #fcs run sample name
-name = "Test"
+name = "."
 #name of the gate file to use
-
-gate.name <- NA
+gate.name <- "."
   
 #are you checking ploidy with PI stain?
 #if you are, you must define the ploidy (of at least the controls) in your sample sheet
-pi <- TRUE
-
+pi <- FALSE
 
 #fcs data to extract
 extract.FSC_A <- "Yes"
@@ -109,22 +109,21 @@ extract.Time  <- "No"
 sample.param <- data.frame(SAMPLE=NA, WELL=NA, STRAIN=NA, GENOTYPE=NA, PLOIDY=NA, MEDIA=NA, EXPERIMENT=NA)
 
 #style of output
-#Proportional Data
-save.prop <- "Yes"
+
 #FlowSet
 save.flowset <- "No"
 #filename
-folder.flowset <-  paste(name, 'flowdata', Sys.Date(), sep = '_')
+folder.flowset <-  paste0(dir,"/",name, '_flowdata_', Sys.Date())
 #DataFrame - Individual data points
 save.df <- "Yes"
-file.df <- paste(name, 'df', Sys.Date(), sep = '_')
+file.df <- paste0(dir,"/",name, '_df_', Sys.Date())
 #DataFrame - Experiment Statistics
 save.stats <- "Yes"
-file.stats <- paste(name, 'stats', Sys.Date(), sep = '_')
+file.stats <- paste0(dir,"/",name, '_stats_', Sys.Date())
 
 #DataFrame - Proportions in each gate
 save.prop <- "Yes"
-file.prop <- paste(name, 'prop', Sys.Date(), sep = '_')
+file.prop <- paste0(dir,"/",name, '_prop_', Sys.Date())
 
 ```
 
@@ -148,13 +147,13 @@ Need to define names
 
 ```{r}
 #Reads in samplesheet
-sample.sheet <- read.csv(paste(path.data,"samplesheet_",name,".csv", sep=""))
+sample.sheet <- read.csv(paste0(path.data,"samplesheet_",name,".csv"))
 #get/set samplesheet parameters, overwrites default
 #!!!! REMEMBER TO ADJUST THE CODE SO THAT THE PARAMETERS MATCH THOSE THAT YOU ADD TO THE PDATA, TO THE EXTRATCED DATA, AND TO THE DATA 
 
 
 #reads in FCS files in order outliined in samplesheet
-files <- paste(path.data,name,"/",sort(factor(list.files(paste(path.data,name,"/", sep=""),full.names=FALSE), levels = paste(sample.sheet$Well,".fcs",sep="" ), ordered=TRUE)),sep="")
+files <- paste(path.data,"/",sort(factor(list.files(paste(path.data,"/", sep=""),full.names=FALSE), levels = paste(sample.sheet$Well,".fcs",sep="" ), ordered=TRUE)),sep="")
 flowData <- read.ncdfFlowSet(files=files, pattern=".fcs", alter.names = TRUE)
 
 #Ensures that the number of entries in the sample sheet match the number of flowFrames in the flowSet
@@ -181,7 +180,7 @@ pData(flowData)$Experiment <- sample.sheet$Experiment
 
 
 #Load Gates
-load(file = gate.name)
+load(file = paste0(path.data, gate.name))
 
 ```
 
@@ -228,10 +227,15 @@ flone.neg <- Subset(filteredData, gate.neg)
 flone.neg.cells <- fsApply(flone.neg, each_col, length)[1:samples.num]
 print(flone.neg.cells)
 
-#this gate defines flouresecent cells
+#this gate defines flouresecent cells (one copy)
 flone.pos <- Subset(filteredData, gate.pos) 
 flone.pos.cells <- fsApply(flone.pos, each_col, length)[1:samples.num]
 print(flone.pos.cells)
+
+#this gate defines high flouresecent cells (2+ copies)
+flone.hi <- Subset(filteredData, gate.hi) 
+flone.hi.cells <- fsApply(flone.hi, each_col, length)[1:samples.num]
+print(flone.hi.cells)
 
 ```
 
@@ -242,21 +246,21 @@ print(flone.pos.cells)
 ```{r}
 
 #Singlets gate
-ggcyto(flowData, aes(x = `FSC.H`, y =  `FSC.A`)) + geom_hex(bins = 512) +  xlim(0,3e6) + ylim(0,3e6) + geom_gate(pg.singlets) + facet_wrap(~name, ncol = 8, nrow = 4) + ggtitle("First flowset - singlets gate")
+ggcyto(flowData, aes(x = `FSC.H`, y =  `FSC.A`)) + geom_hex(bins = 512) + geom_gate(pg.singlets) + facet_wrap(~name, ncol = 8, nrow = 4) + ggtitle("First flowset - singlets gate")
 
 #Debris gate
 
-ggcyto(flowData, aes(x = `FSC.A`, y =  `SSC.A`)) + geom_hex(bins = 512) +  xlim(0,2e6) + ylim(0,5e5) + geom_gate(pg.nondebris) + facet_wrap(~name, ncol = 8, nrow = 4) + ggtitle("First flowset - nondebris gate")
+ggcyto(flowData, aes(x = `FSC.A`, y =  `SSC.A`)) + geom_hex(bins = 512) + geom_gate(pg.nondebris) + facet_wrap(~name, ncol = 8, nrow = 4) + ggtitle("First flowset - nondebris gate")
 
 #Non-fluorescent population gate
 
-ggcyto(flowData, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) +  xlim(0,1e6) + ylim(0,3e5) + geom_gate(gate.neg) + facet_wrap(~name, ncol = 8, nrow = 4) + ggtitle("First flowset - non GFP gate")
+ggcyto(flowData, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) + geom_gate(gate.neg) + facet_wrap(~name, ncol = 8, nrow = 4) + ggtitle("First flowset - non GFP gate")
 
 # Fluorescent population gate
-ggcyto(flowData, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) +  xlim(0,1e6) + ylim(0,3e5) + geom_gate(gate.pos) + facet_wrap(~name, ncol = 8, nrow = 4) + ggtitle("First flowset - GFP gate")
+ggcyto(flowData, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) + geom_gate(gate.pos) + facet_wrap(~name, ncol = 8, nrow = 4) + ggtitle("First flowset - GFP gate")
 
 #Hi fluorescing gate
-ggcyto(flowData, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) +  xlim(0,1e6) + ylim(0,3e5) + geom_gate(gate.hi) + facet_wrap(~name, ncol = 8, nrow = 4) + ggtitle("First flowset - high GFP gate")
+ggcyto(flowData, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) + geom_gate(gate.hi) + facet_wrap(~name, ncol = 8, nrow = 4) + ggtitle("First flowset - high GFP gate")
 
 
 ```
@@ -298,17 +302,17 @@ dataLGCLTransform <- transform(filteredData, 'FSC.A' = lgcl(`FSC.A`), 'SSC.A' =l
 ##Effect of time
 ```{r}
 #The effect of time on signal (of which there shouldn't be any)
-ggcyto(dataLGCLTransform, aes(x = `Time`, y =  `FL1.A`)) + geom_hex(bins = 128) +  xlim(150,250) + ylim(0,8)+facet_wrap(~name, ncol = 8, nrow = 4)
+ggcyto(dataLGCLTransform, aes(x = `Time`, y =  `FL1.A`)) + geom_hex(bins = 128) +  ggcyto_par_set(limits = list(x = c(150,250), y = c(0,8)))+facet_wrap(~name, ncol = 8, nrow = 4)
 ```
 
 ##Plots of FL1 versus FSC
 ```{r}
-ggcyto(dataLGCLTransform, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) +  xlim(4,8) + ylim(2,6) + facet_wrap(~name, ncol = 8, nrow = 4)
+ggcyto(dataLGCLTransform, aes(x = `FSC.A`, y =  `FL1.A`)) + geom_hex(bins = 512) +   ggcyto_par_set(limits = list(x = c(4,8), y = c(2,8))) + facet_wrap(~name, ncol = 8, nrow = 4)
 ```
 
 ##Plots of FSC versus SSC
 ```{r}
-ggcyto(dataLGCLTransform, aes(x = `FSC.A`, y =  `SSC.A`)) + geom_hex(bins = 512) +  xlim(4,8) + ylim(4,8)+facet_wrap(~name, ncol = 8, nrow = 4)
+ggcyto(dataLGCLTransform, aes(x = `FSC.A`, y =  `SSC.A`)) + geom_hex(bins = 512) +   ggcyto_par_set(limits = list(x = c(4,8), y = c(4,8)))+facet_wrap(~name, ncol = 8, nrow = 4)
 ```
 
 
@@ -345,7 +349,7 @@ for(i in 1:length(filteredData)){
   genotype <- as.character(pData(filteredData)$Genotype[i])
   ploidy <- as.character(pData(filteredData)$Ploidy[i])
   media <- as.character(pData(filteredData)$Media[i])
-  exp <- as.character(pData(filteredData)$Experiment[i])
+  experiment <- as.character(pData(filteredData)$Experiment[i])
   if(extract.FSC_A == "Yes"){fsc.a <- exprs(filteredData[[i,1]])}
   if(extract.SSC_A == "Yes"){ssc.a <- exprs(filteredData[[i,2]])}
   if(extract.FL1_A == "Yes"){fl1.a <- exprs(filteredData[[i,3]])}
@@ -362,7 +366,7 @@ for(i in 1:length(filteredData)){
   if(extract.Time == "Yes"){time <- exprs(filteredData[[i,12]])}
   
 #!!!! REMEMBER THAT YOU NEED TO MAKE SURE YOUR SAMPLESHEET PARAMATERS ARE INCLUDED IN THIS CODE
-  filtered.data <- rbind(filtered.data, cbind(SAMPLE=sample,WELL=well,STRAIN=strain,GENOTYPE=genotype,PLOIDY=ploidy,MEDIA=media,EXPERIMENT=exp,
+  filtered.data <- rbind(filtered.data, cbind(SAMPLE=sample,WELL=well,STRAIN=strain,GENOTYPE=genotype,PLOIDY=ploidy,MEDIA=media, EXPERIMENT=experiment,
                     if(extract.FSC_A == "Yes"){FSC.A=fsc.a},
                     if(extract.SSC_A == "Yes"){SSC.A=ssc.a},
                     if(extract.FL1_A == "Yes"){FL1.A=fl1.a},
@@ -415,7 +419,7 @@ stats.data <- cbind(sample.param,COUNT=NA,FSC_MEDIAN=NA,FSC_MEAN=NA,FSC_SD=NA,FL
   genotype <- as.character(pData(filteredData)$Genotype[i])
   ploidy <- as.character(pData(filteredData)$Ploidy[i])
   media <- as.character(pData(filteredData)$Media[i])
-  exp <- as.character(pData(filteredData)$Experiment[i])
+  experiment <- as.character(pData(filteredData)$Experiment[i])
   if(extract.FSC_A == "Yes"){fsc.a <- exprs(filteredData[[i,1]])}
   if(extract.SSC_A == "Yes"){ssc.a <- exprs(filteredData[[i,2]])}
   if(extract.FL1_A == "Yes"){fl1.a <- exprs(filteredData[[i,3]])}
@@ -432,7 +436,7 @@ stats.data <- cbind(sample.param,COUNT=NA,FSC_MEDIAN=NA,FSC_MEAN=NA,FSC_SD=NA,FL
   if(extract.Time == "Yes"){time <- exprs(filteredData[[i,12]])}
  
   #!!!! REMEMBER THAT YOU NEED TO MAKE SURE YOUR SAMPLESHEET PARAMATERS ARE INCLUDED IN THIS CODE AND THAT YOU MAY NEED TO ADD OR REMOVE STATISTIC COLUMNS BASED ON WHAT YOUR NEEDS ARE !!!!
-  stats.data<-(rbind(stats.data,cbind(SAMPLE=sample,WELL=well,STRAIN=strain,GENOTYPE=genotype,PLOIDY=ploidy,MEDIA=media,EXPERIMENT=exp,COUNT=length(fsc.a),FSC_MEDIAN=median(fsc.a),FSC_MEAN=mean(fsc.a),FSC_SD=sd(fsc.a),FL1_MEDIAN=median(fl1.a),FL1_MEAN=mean(fl1.a),FL1_SD=sd(fl1.a),NORMALIZED_GFP_MEDIAN=median(fl1.a/fsc.a),NORMALIZED_GFP_MEAN=mean(fl1.a/fsc.a),NORMALIZED_GFP_SD=sd(fl1.a/fsc.a))))
+  stats.data<-(rbind(stats.data,cbind(SAMPLE=sample,WELL=well,STRAIN=strain,GENOTYPE=genotype,PLOIDY=ploidy,MEDIA=media,EXPERIMENT=experiment,COUNT=length(fsc.a),FSC_MEDIAN=median(fsc.a),FSC_MEAN=mean(fsc.a),FSC_SD=sd(fsc.a),FL1_MEDIAN=median(fl1.a),FL1_MEAN=mean(fl1.a),FL1_SD=sd(fl1.a),NORMALIZED_GFP_MEDIAN=median(fl1.a/fsc.a),NORMALIZED_GFP_MEAN=mean(fl1.a/fsc.a),NORMALIZED_GFP_SD=sd(fl1.a/fsc.a))))
  }  
 
 #Cleans up DataFrames
@@ -515,7 +519,7 @@ r
 ```{r Quantitation of Signal}
 
 ###FL1###
-baseline.FL1 <- stats.data$FL1_MEDIAN[] #MUST REPLACE WITH YOUR FL1 ChannelCONTROL!!
+baseline.FL1 <- stats.data$FL1_MEDIAN[11] #MUST REPLACE WITH YOUR FL1 ChannelCONTROL!!
 ggplot(stats.data,aes(x=SAMPLE, y = FL1_MEDIAN/baseline.FL1)) +
   geom_col() +
   theme_bw() +
@@ -524,7 +528,7 @@ ggplot(stats.data,aes(x=SAMPLE, y = FL1_MEDIAN/baseline.FL1)) +
   ylab("Relative FL1 Median Expression")
 
 ###FSC###
-baseline.FSC <- stats.data$FSC_MEDIAN[1] #MUST REPLACE WITH YOUR FSC Channel non-flourescense CONTROL!!
+baseline.FSC <- stats.data$FSC_MEDIAN[2] #MUST REPLACE WITH YOUR FSC Channel non-flourescense CONTROL!!
 ggplot(stats.data,aes(x=SAMPLE, y = FSC_MEDIAN/baseline.FL1)) +
   geom_col() +
   theme_bw() +
@@ -562,6 +566,13 @@ ggplot(stats.data,aes(x=SAMPLE, y = flone.pos.cells/non.debris)) +
   theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 6)) +
   scale_x_discrete(labels=stats.data$SAMPLE)+
   ylab("Proportion cells with Flourescense")
+
+ggplot(stats.data,aes(x=SAMPLE, y = flone.hi.cells/non.debris)) +
+  geom_col() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 6)) +
+  scale_x_discrete(labels=stats.data$SAMPLE)+
+  ylab("Proportion cells with High Flourescense")
 ```
 
 
@@ -571,18 +582,18 @@ ggplot(stats.data,aes(x=SAMPLE, y = flone.pos.cells/non.debris)) +
 ```{r Population composition}
 
 PopProportion_zeroGFP <- flone.neg.cells/non.debris
-PopProportion_oneGFP <- flone.one.cells/non.debris
-PopProportion_twoGFP <- flone.two.cells/non.debris
-PopProportion_threeGFP <- flone.three.cells/non.debris
-prop.data <- cbind(stats.data, PopProportion_zeroGFP, PopProportion_oneGFP, PopProportion_twoGFP, PopProportion_threeGFP, non.debris)
-colnames(prop.data) <- c(colnames(stats.data), "PopProp_0copy", "PopProp_1copy", "PopProp_2copy", "PopProp_3plus", "CELL COUNT")
+PopProportion_oneGFP <- flone.pos.cells/non.debris
+PopProportion_twoGFP <- flone.hi.cells/non.debris
+
+prop.data <- cbind(stats.data, PopProportion_zeroGFP, PopProportion_oneGFP, PopProportion_twoGFP, non.debris)
+colnames(prop.data) <- c(colnames(stats.data), "PopProp_0copy", "PopProp_1copy", "PopProp_2copy", "CELL COUNT")
 
 prop.data %>% 
-  select(SAMPLE,PopProp_3plus,PopProp_0copy,PopProp_1copy,PopProp_2copy) %>% 
+  select(SAMPLE,PopProp_0copy,PopProp_1copy,PopProp_2copy) %>% 
   gather(key="GFP_NUMBER",value="SIGNAL",-SAMPLE) %>%
-  ggplot(aes(fill=factor(GFP_NUMBER, levels = c("PopProp_3plus", "PopProp_2copy", "PopProp_1copy", "PopProp_0copy")), y=SIGNAL, x=SAMPLE)) +
+  ggplot(aes(fill=factor(GFP_NUMBER, levels = c("PopProp_2copy", "PopProp_1copy", "PopProp_0copy")), y=SIGNAL, x=SAMPLE)) +
     geom_bar(stat="identity") +
-    scale_fill_manual(values=c("dark green","light green","grey","black")) +
+    scale_fill_manual(values=c("dark green","light green","grey")) +
     theme_bw() +
     theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust = 1, size = 6)) +
     ylab("Proportion cells with Flourescense") +
