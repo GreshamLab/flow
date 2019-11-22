@@ -74,9 +74,9 @@ sampleNames(flowData) <- paste(gsub(" ","_",sample.sheet$Strain),"_",sub(" ","_"
 
 #set controls on which to gate on
 #these are some of the base types of controls you may want for each channel you are taking measurements from 
-neg.signal <- "THIS IS A BETTER CHANNEL"
-pos.signal <- "YES"
-hi.signal <- "IT IS"
+neg.signal <- "CHANNEL"
+pos.signal <- "OTHER.CHANNEL"
+hi.signal <- "THIRD.CHANNEL"
 
 
 ##############################
