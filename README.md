@@ -4,7 +4,9 @@ They are designed to enable quantitative analysis of cell fluorescence data.
 
 There are three scripts.
 
-1. Perform gating for
+1. flow_gating.R
+
+which performs gating for:
 
 * doublets 
 * debris 
