@@ -14,4 +14,6 @@ which performs gating for:
 
 using an R script and save gates as .Rdata file.
     
-2. Import .Rdata file containing gates and render Rmarkdown file in order to save report of work.
+2. flow_single_timepoint_data_extraction.Rmd
+
+3. flow_multi_timepoint_analysis.Rmd
