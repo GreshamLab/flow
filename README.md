@@ -1,4 +1,7 @@
 # flow
+
+THIS REPO IS NOT DEPRECATED - USE FLOW TOOLS
+
 These scripts are used for processing flow cytometry and FACS data in the Gresham Lab. 
 They are designed to enable quantitative analysis of cell fluorescence data. 
 
